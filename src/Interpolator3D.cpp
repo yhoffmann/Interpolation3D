@@ -1,5 +1,9 @@
 #include "../include/Interpolator3D.h"
 #include <cmath>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 
 
 double Interpolator3D::inputs_for_pos(XYZ xyz, luint index, DataGenerationConfig& config)
@@ -19,8 +23,15 @@ double Interpolator3D::inputs_for_pos(XYZ xyz, luint index, DataGenerationConfig
     }
     else if (config.x_grid_spacing == "log")
     {
-        if (min == 0) { min = 1.0e-3*(max-min)/(double(n-1)); }
-        return min*exp(log(max/min)*(double(index))/double(n-1))-min;
+        if (min == 0)
+        {
+            min = 1.0e-3*(max-min)/(double(n-1));
+            return min*exp(log(max/min)*(double(index))/double(n-1))-min;
+        }
+        else
+        {
+            return min*exp(log(max/min)*(double(index))/double(n-1));
+        }
     }
     else
     {
@@ -53,6 +64,111 @@ void Interpolator3D::set_grid_pos (DataGenerationConfig& config)
     {
         z_pos[k] = inputs_for_pos(z,k,config);
     }
+}
+
+
+void Interpolator3D::print_data_to_file (std::string filepath) 
+{
+    std::cout << "Exporting data to file" << std::endl;
+
+    std::ofstream out;
+    out.open(filepath);
+    if (!out.is_open()) { std::cerr << "Could not open given file. Aborting" << std::endl; exit(0); }
+
+    // printing n_x, n_y, n_z into the first line
+    out << "#N " << x_pos.size() << " " << y_pos.size() << " " << z_pos.size() << std::endl;
+
+    for (luint i=0; i<data.size(); i++)
+    {
+        for (luint j=0; j<data[0].size(); j++)
+        {
+            for (int k=0; k<data[0][0].size(); k++)
+            {
+                out << std::setprecision(10) << i << " " << j << " " << k << " " << x_pos[i] << " " << y_pos[j] << " " << z_pos[k] << " " << data[i][j][k] << std::endl;
+            }
+            out << std::endl;
+        }
+        out << std::endl;
+    }
+
+    out.close();
+
+    std::cout << "Finished exporting data to file" << std::endl;
+}
+
+
+void Interpolator3D::load_data (std::string filepath)
+{
+    std::ifstream in;
+    in.open(filepath);
+    if (!in.is_open()) { std::cerr << "Could not open given file. Aborting" << std::endl; exit(0); }
+
+    std::string line;
+    std::vector<std::string> line_vec;
+
+    // getting n_x, n_y, n_z from the first line
+    std::getline(in, line);
+    std::istringstream ss(line);
+    std::string element;
+    while (std::getline(ss, element, ' '))
+    {
+        line_vec.push_back(element);
+    }
+    if (line_vec[0] != "#N") { std::cerr << "Wrong data format, use generate_data() to generate data in the desired format. Aborting!" << std::endl; exit(0); }
+    luint n_x = std::stoi(line_vec[1]);
+    luint n_y = std::stoi(line_vec[2]);
+    luint n_z = std::stoi(line_vec[3]);
+
+    line_vec.clear();
+
+    x_pos.resize(n_x);
+    y_pos.resize(n_y);
+    z_pos.resize(n_z);
+
+    // getting the rest of the data
+    vec_3d new_data;
+    new_data.resize(n_x);
+    for (luint i=0; i<n_x; i++)
+    {
+        new_data[i].resize(n_y);
+    }
+    for (luint i=0; i<n_x; i++)
+    {
+        for (luint j=0; j<n_y; j++)
+        {
+            new_data[i][j].resize(n_z);
+        }
+    }
+
+    luint i,j,k;
+    while(std::getline(in, line))
+    {
+        if (line != "\n")
+        {
+            std::istringstream ss(line);
+            std::string element;
+            while (std::getline(ss, element, ' '))
+            {
+                line_vec.push_back(element);
+            }
+
+            i = std::stoi(line_vec[0]);
+            j = std::stoi(line_vec[1]);
+            k = std::stoi(line_vec[2]);
+
+            x_pos[i] = std::stod(line_vec[3]); // these assignments are done unnessecarily often but I cant be bothered to do this more clever
+            y_pos[j] = std::stod(line_vec[4]);
+            z_pos[k] = std::stod(line_vec[5]);
+
+            new_data[i][j][k] = std::stod(line_vec[6]);
+
+            line_vec.clear();
+        }
+    }
+
+    in.close();
+
+    data = new_data;
 }
 
 
@@ -111,33 +227,33 @@ double Interpolator3D::trilinear_get_value (double x, double y, double z)
     // finding corners of cuboid which x,y,z is inside of
     double x_0, x_1, y_0, y_1, z_0, z_1;
     luint i_0, j_0, k_0;
-    for (luint i=1; i<x_pos.size()-1; i++)
+    for (luint i=0; i<x_pos.size()-1; i++)
     {
-        if (x_pos[i] > x)
+        if (x_pos[i+1] > x)
         {
-            x_0 = x_pos[i-1];
-            x_1 = x_pos[i];
-            i_0 = i-1;
+            x_0 = x_pos[i];
+            x_1 = x_pos[i+1];
+            i_0 = i;
             break;
         }
     }
-    for (luint j=1; j<y_pos.size()-1; j++)
+    for (luint j=0; j<y_pos.size()-1; j++)
     {
-        if (y_pos[j] > y)
+        if (y_pos[j+1] > y)
         {
-            y_0 = y_pos[j-1];
-            y_1 = y_pos[j];
-            j_0 = j-1;
+            y_0 = y_pos[j];
+            y_1 = y_pos[j+1];
+            j_0 = j;
             break;
         }
     }
-    for (luint k=1; k<z_pos.size()-1; k++)
+    for (luint k=0; k<z_pos.size()-1; k++)
     {
-        if (z_pos[k] > z)
+        if (z_pos[k+1] > z)
         {
-            z_0 = z_pos[k-1];
-            z_1 = z_pos[k];
-            k_0 = k-1;
+            z_0 = z_pos[k];
+            z_1 = z_pos[k+1];
+            k_0 = k;
             break;
         }
     }

@@ -40,7 +40,7 @@ public:
 
     void set_grid_pos(DataGenerationConfig& config);
 
-    bool print_data_to_file();
+    void print_data_to_file(std::string filepath);
 
     double inputs_for_pos(XYZ xyz, luint index, DataGenerationConfig& config);
 
@@ -51,7 +51,7 @@ public:
 
     void generate_data(double func(double x, double y, double z), DataGenerationConfig& config, bool progress_monitor);
 
-    bool load_data(double func(double x, double y, double z));
+    void load_data(std::string filepath);
 
     double trilinear_get_value(double x, double y, double z);
 
