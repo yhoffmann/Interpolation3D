@@ -156,7 +156,7 @@ void Interpolator3D::load_data (std::string filepath)
             j = std::stoi(line_vec[1]);
             k = std::stoi(line_vec[2]);
 
-            x_pos[i] = std::stod(line_vec[3]); // these assignments are done unnessecarily often but I cant be bothered to do this more clever
+            x_pos[i] = std::stod(line_vec[3]); // these assignments are done unnessecarily often but I cant be bothered to do this more cleverly
             y_pos[j] = std::stod(line_vec[4]);
             z_pos[k] = std::stod(line_vec[5]);
 
