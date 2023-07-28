@@ -9,8 +9,8 @@
 double Interpolator3D::inputs_for_pos(XYZ xyz, luint index, DataGenerationConfig& config)
 {
     std::string grid_spacing;
-    luint n;
-    double min, max;
+    luint n(0);
+    double min(0), max(0);
 
     if (xyz == x) { grid_spacing = config.x_grid_spacing; n = config.n_x; min = config.x_min; max = config.x_max; }
     else if (xyz == y) { grid_spacing = config.y_grid_spacing; n = config.n_y; min = config.y_min; max = config.y_max; }
@@ -82,7 +82,7 @@ void Interpolator3D::print_data_to_file (std::string filepath)
     {
         for (luint j=0; j<data[0].size(); j++)
         {
-            for (int k=0; k<data[0][0].size(); k++)
+            for (luint k=0; k<data[0][0].size(); k++)
             {
                 out << std::setprecision(10) << i << " " << j << " " << k << " " << x_pos[i] << " " << y_pos[j] << " " << z_pos[k] << " " << data[i][j][k] << std::endl;
             }
@@ -225,8 +225,8 @@ double Interpolator3D::trilinear_get_value (double x, double y, double z)
     if (z < z_pos[0] || z > z_pos[z_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
 
     // finding corners of cuboid which x,y,z is inside of
-    double x_0, x_1, y_0, y_1, z_0, z_1;
-    luint i_0, j_0, k_0;
+    double x_0(0), x_1(0), y_0(0), y_1(0), z_0(0), z_1(0);
+    luint i_0(0), j_0(0), k_0(0);
     for (luint i=0; i<x_pos.size()-1; i++)
     {
         if (x_pos[i+1] > x)
