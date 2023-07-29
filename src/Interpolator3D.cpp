@@ -12,9 +12,9 @@ double Interpolator3D::inputs_for_pos(XYZ xyz, luint index, DataGenerationConfig
     luint n(0);
     double min(0), max(0);
 
-    if (xyz == x) { grid_spacing = config.x_grid_spacing; n = config.n_x; min = config.x_min; max = config.x_max; }
-    else if (xyz == y) { grid_spacing = config.y_grid_spacing; n = config.n_y; min = config.y_min; max = config.y_max; }
-    else if (xyz == z) { grid_spacing = config.z_grid_spacing; n = config.n_z; min = config.z_min; max = config.z_max; }
+    if (xyz == X) { grid_spacing = config.x_grid_spacing; n = config.n_x; min = config.x_min; max = config.x_max; }
+    else if (xyz == Y) { grid_spacing = config.y_grid_spacing; n = config.n_y; min = config.y_min; max = config.y_max; }
+    else if (xyz == Z) { grid_spacing = config.z_grid_spacing; n = config.n_z; min = config.z_min; max = config.z_max; }
 
     // log only really makes sense for values > 0
     if (grid_spacing == "linear")
@@ -54,20 +54,20 @@ void Interpolator3D::set_grid_pos (DataGenerationConfig& config)
 
     for (luint i=0; i<n_x; i++)
     {
-        x_pos[i] = inputs_for_pos(x,i,config);
+        x_pos[i] = inputs_for_pos(X,i,config);
     }
     for (luint j=0; j<n_y; j++)
     {
-        y_pos[j] = inputs_for_pos(y,j,config);
+        y_pos[j] = inputs_for_pos(Y,j,config);
     }
     for (luint k=0; k<n_z; k++)
     {
-        z_pos[k] = inputs_for_pos(z,k,config);
+        z_pos[k] = inputs_for_pos(Z,k,config);
     }
 }
 
 
-void Interpolator3D::print_data_to_file (std::string filepath) 
+void Interpolator3D::export_data_to_file (std::string filepath) 
 {
     std::cout << "Exporting data to file" << std::endl;
 
@@ -143,7 +143,7 @@ void Interpolator3D::load_data (std::string filepath)
     luint i,j,k;
     while(std::getline(in, line))
     {
-        if (line != "\n")
+        if (line != "")
         {
             std::istringstream ss(line);
             std::string element;
@@ -156,6 +156,8 @@ void Interpolator3D::load_data (std::string filepath)
             j = std::stoi(line_vec[1]);
             k = std::stoi(line_vec[2]);
 
+            //std::cout << i << " " << j << " " << k << " " << line_vec[3] << " " << line_vec[4] << " " << line_vec[5] << std::endl;
+
             x_pos[i] = std::stod(line_vec[3]); // these assignments are done unnessecarily often but I cant be bothered to do this smarter
             y_pos[j] = std::stod(line_vec[4]);
             z_pos[k] = std::stod(line_vec[5]);
@@ -165,7 +167,6 @@ void Interpolator3D::load_data (std::string filepath)
             line_vec.clear();
         }
     }
-
     in.close();
 
     data = new_data;
@@ -275,4 +276,311 @@ double Interpolator3D::trilinear_get_value (double x, double y, double z)
 
     // interpolating along z, this is the interpolated value
     return c_0 * (1.0-dz) + c_1 * dz;
+}
+
+
+double Interpolator3D::slope_at_vertex (XYZ t, int i, int j, int k)
+{
+    double dp, dt;
+    double p_m1, p_1;
+    luint index;
+
+    switch (t)
+    {
+    case X:
+        index = i;
+    break;
+    
+    case Y:
+        index = j;
+    break;
+    }
+    
+    if (index==0)
+    {
+        switch (t)
+        {
+        case X:
+            p_1 = data[i+1][j][k];
+            p_m1 = data[i][j][k];
+            dt = x_pos[i+1]-x_pos[i];
+            return (p_1-p_m1)/dt;
+        break;
+        
+        case Y:
+            p_1 = data[i][j+1][k];
+            p_m1 = data[i][j][k];
+            dt = y_pos[j+1]-y_pos[j];
+            return (p_1-p_m1)/dt;
+        break;
+        }
+    }
+    else if (index==(t==X ? x_pos.size()-1 : y_pos.size()-1))
+    {
+        switch (t)
+        {
+        case X:
+            p_1 = data[i][j][k];
+            p_m1 = data[i-1][j][k];
+            dt = x_pos[i]-x_pos[i-1];
+            return (p_1-p_m1)/dt;
+        break;
+        
+        case Y:
+            p_1 = data[i][j][k];
+            p_m1 = data[i][j-1][k];
+            dt = y_pos[j]-y_pos[j-1];
+            return (p_1-p_m1)/dt;
+        break;
+        }
+    }
+    else
+    {
+        switch (t)
+        {
+        case X:
+            p_1 = data[i+1][j][k];
+            p_m1 = data[i-1][j][k];
+            dt = x_pos[i+1]-x_pos[i-1];
+            return (p_1-p_m1)/dt;
+        break;
+        
+        case Y:
+            p_1 = data[i][j+1][k];
+            p_m1 = data[i][j-1][k];
+            dt = y_pos[j+1]-y_pos[j-1];
+            return (p_1-p_m1)/dt;
+        break;
+        }
+    }
+    std::cout << "big problem in slope single" << std::endl;
+    return 0;
+}
+
+/*
+double Interpolator3D::unicubic_interpolate (double p[4], double x) {
+	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+}
+
+double Interpolator3D::bicubic_interpolate (double p[4][4], double x, double y) {
+	double arr[4];
+	arr[0] = unicubic_interpolate(p[0], y);
+	arr[1] = unicubic_interpolate(p[1], y);
+	arr[2] = unicubic_interpolate(p[2], y);
+	arr[3] = unicubic_interpolate(p[3], y);
+	return unicubic_interpolate(arr, x);
+}
+
+double Interpolator3D::tricubic_interpolate (double p[4][4][4], double x, double y, double z) {
+	double arr[4];
+	arr[0] = bicubic_interpolate(p[0], y, z);
+	arr[1] = bicubic_interpolate(p[1], y, z);
+	arr[2] = bicubic_interpolate(p[2], y, z);
+	arr[3] = bicubic_interpolate(p[3], y, z);
+	return unicubic_interpolate(arr, x);
+}
+
+
+double Interpolator3D::bicubic_unilinear_get_value (double x, double y, double z)
+{
+
+}
+*/
+
+
+double Interpolator3D::slope_at_vertex (XYZ t_1, XYZ t_2, int i, int j, int k)
+{
+    double dp_x, dp_y, dt_x, dt_y;
+    double p_m1m1, p_11, p_m11, p_1m1;
+
+    if (i==0 && j==0)
+    {
+        p_11 = data[i+1][j+1][k];
+        p_1m1 = data[i+1][j][k];
+        p_m11 = data[i][j+1][k];
+        p_m1m1 = data[i][j][k];
+
+        dt_x = x_pos[i+1]-x_pos[i];
+        dt_y = y_pos[j+1]-y_pos[j];
+
+        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
+    }
+    else if (i==0 && j==y_pos.size()-1)
+    {
+        p_11 = data[i+1][j][k];
+        p_1m1 = data[i+1][j-1][k];
+        p_m11 = data[i][j][k];
+        p_m1m1 = data[i][j-1][k];
+
+        dt_x = x_pos[i+1]-x_pos[i];
+        dt_y = y_pos[j]-y_pos[j-1];
+
+        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
+    }
+    else if (i==x_pos.size()-1 && j==0)
+    {
+        p_11 = data[i][j+1][k];
+        p_1m1 = data[i][j][k];
+        p_m11 = data[i-1][j+1][k];
+        p_m1m1 = data[i-1][j][k];
+
+        dt_x = x_pos[i]-x_pos[i-1];
+        dt_y = y_pos[j+1]-y_pos[j];
+
+        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
+    }
+    else if (i==x_pos.size()-1 && j==y_pos.size()-1)
+    {
+        p_11 = data[i][j][k];
+        p_1m1 = data[i][j-1][k];
+        p_m11 = data[i-1][j][k];
+        p_m1m1 = data[i-1][j-1][k];
+
+        dt_x = x_pos[i]-x_pos[i-1];
+        dt_y = y_pos[j]-y_pos[j-1];
+
+        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
+    }
+    else if (i==0)
+    {
+        p_11 = data[i+1][j+1][k];
+        p_1m1 = data[i+1][j-1][k];
+        p_m11 = data[i][j+1][k];
+        p_m1m1 = data[i][j-1][k];
+
+        dt_x = x_pos[i+1]-x_pos[i];
+        dt_y = y_pos[j+1]-y_pos[j-1];
+
+        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
+    }
+    else if (j==0)
+    {
+        p_11 = data[i+1][j+1][k];
+        p_1m1 = data[i+1][j][k];
+        p_m11 = data[i-1][j+1][k];
+        p_m1m1 = data[i-1][j][k];
+
+        dt_x = x_pos[i+1]-x_pos[i-1];
+        dt_y = y_pos[j+1]-y_pos[j];
+
+        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
+    }
+    else
+    {
+        p_11 = data[i+1][j+1][k];
+        p_1m1 = data[i+1][j-1][k];
+        p_m11 = data[i-1][j+1][k];
+        p_m1m1 = data[i-1][j-1][k];
+
+        dt_x = x_pos[i+1]-x_pos[i-1];
+        dt_y = y_pos[j+1]-y_pos[j-1];
+
+        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
+    }
+}
+
+
+double Interpolator3D::bicubic_get_value (double x, double y, luint k_0)
+{
+    // handling inputs outside of known range
+    if (x < x_pos[0] || x > x_pos[x_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+    if (y < y_pos[0] || y > y_pos[y_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+
+    // finding corners of cuboid which x,y,z is inside of
+    double x_0(0), x_1(0), y_0(0), y_1(0), z_0(0), z_1(0);
+    luint i_0(0), j_0(0);
+    for (luint i=0; i<x_pos.size()-1; i++)
+    {
+        if (x_pos[i+1] > x)
+        {
+            x_0 = x_pos[i];
+            x_1 = x_pos[i+1];
+            i_0 = i;
+            break;
+        }
+    }
+    for (luint j=0; j<y_pos.size()-1; j++)
+    {
+        if (y_pos[j+1] > y)
+        {
+            y_0 = y_pos[j];
+            y_1 = y_pos[j+1];
+            j_0 = j;
+            break;
+        }
+    }
+
+    double a_vec[16]{0.0};
+    
+    double dx = x_pos[i_0+1]-x_pos[i_0];
+    double dy = y_pos[j_0+1]-y_pos[j_0];
+
+    double x_vec[16] =
+    {
+        data[i_0][j_0][k_0],
+        data[i_0+1][j_0][k_0],
+        data[i_0][j_0+1][k_0],
+        data[i_0+1][j_0+1][k_0],
+        dx*slope_at_vertex(X,i_0,j_0,k_0),
+        dx*slope_at_vertex(X,i_0+1,j_0,k_0),
+        dx*slope_at_vertex(X,i_0,j_0+1,k_0),
+        dx*slope_at_vertex(X,i_0+1,j_0+1,k_0),
+        dy*slope_at_vertex(Y,i_0,j_0,k_0),
+        dy*slope_at_vertex(Y,i_0+1,j_0,k_0),
+        dy*slope_at_vertex(Y,i_0,j_0+1,k_0),
+        dy*slope_at_vertex(Y,i_0+1,j_0+1,k_0),
+        dx*dy*slope_at_vertex(X,Y,i_0,j_0,k_0),
+        dx*dy*slope_at_vertex(X,Y,i_0+1,j_0,k_0),
+        dx*dy*slope_at_vertex(X,Y,i_0,j_0+1,k_0),
+        dx*dy*slope_at_vertex(X,Y,i_0+1,j_0+1,k_0)
+    };
+
+    for (int i=0; i<16; i++)
+    {
+        for (int j=0; j<16; j++)
+        {
+            a_vec[i] += BICUBIC_COEFFICIENTS[i][j] * x_vec[j];
+        }
+    }
+
+    // normalizing the cubiod to a unit cube
+    x = (x-x_0)/(x_1-x_0);
+    y = (y-y_0)/(y_1-y_0);
+
+    double interpolated_value(0);
+
+    for (int i=0; i<=3; i++)
+    {
+        for (int j=0; j<=3; j++)
+        {
+            interpolated_value += a_vec[i+4*j] * std::pow(x,i) * std::pow(y,j);
+        }
+    }
+
+    return interpolated_value;
+}
+
+
+double Interpolator3D::bicubic_unilinear_get_value (double x, double y, double z)
+{
+    if (z < z_pos[0] || z > z_pos[z_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+    double z_0(0), z_1(0);
+    luint k_0(0);
+    for (luint k=0; k<z_pos.size()-1; k++)
+    {
+        if (z_pos[k+1] > z)
+        {
+            z_0 = z_pos[k];
+            z_1 = z_pos[k+1];
+            k_0 = k;
+            break;
+        }
+    }
+
+    double bicubic_result_0 = bicubic_get_value(x,y,k_0);
+    double bicubic_result_1 = bicubic_get_value(x,y,k_0+1);
+
+    z = (z_1-z_0)/(z_pos[k_0+1]-z_pos[k_0]);
+
+    return bicubic_result_0+z*(bicubic_result_1-bicubic_result_0);
 }
