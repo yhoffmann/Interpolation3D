@@ -353,7 +353,6 @@ double Interpolator3D::slope_at_vertex (XYZ t, int i, int j, int k)
         break;
         }
     }
-    std::cout << "big problem in slope single" << std::endl;
     return 0;
 }
 
