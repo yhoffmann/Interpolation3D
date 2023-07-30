@@ -6,7 +6,7 @@
 #include <iomanip>
 
 
-double Interpolator3D::inputs_for_pos(XYZ xyz, luint index, DataGenerationConfig& config)
+double Interpolator3D::pos_of_grid_point (XYZ xyz, luint index, DataGenerationConfig& config)
 {
     std::string grid_spacing;
     luint n(0);
@@ -41,7 +41,7 @@ double Interpolator3D::inputs_for_pos(XYZ xyz, luint index, DataGenerationConfig
 }
 
 
-void Interpolator3D::set_grid_pos (DataGenerationConfig& config)
+void Interpolator3D::set_grid (DataGenerationConfig& config)
 {
     luint n_x = config.n_x;
     luint n_y = config.n_y;
@@ -54,22 +54,51 @@ void Interpolator3D::set_grid_pos (DataGenerationConfig& config)
 
     for (luint i=0; i<n_x; i++)
     {
-        x_pos[i] = inputs_for_pos(X,i,config);
+        x_pos[i] = pos_of_grid_point(X,i,config);
     }
     for (luint j=0; j<n_y; j++)
     {
-        y_pos[j] = inputs_for_pos(Y,j,config);
+        y_pos[j] = pos_of_grid_point(Y,j,config);
     }
     for (luint k=0; k<n_z; k++)
     {
-        z_pos[k] = inputs_for_pos(Z,k,config);
+        z_pos[k] = pos_of_grid_point(Z,k,config);
+    }
+
+    grid_is_set = true;
+}
+
+
+void Interpolator3D::prepare_data_array()
+{
+    for (auto& inner_vector : data_array)
+    {
+        for (auto& innermost_vector : inner_vector)
+        {
+            innermost_vector.clear();
+        }
+        inner_vector.clear();
+    }
+    data_array.clear();
+
+    data_array.resize(x_pos.size());
+    for (luint i=0; i<x_pos.size(); i++)
+    {
+       data_array[i].resize(y_pos.size());
+    }
+    for (luint i=0; i<x_pos.size(); i++)
+    {
+        for (luint j=0; j<y_pos.size(); j++)
+        {
+            data_array[i][j].resize(z_pos.size());
+        }
     }
 }
 
 
-void Interpolator3D::export_data_to_file (std::string filepath) 
+void Interpolator3D::export_data (std::string filepath) 
 {
-    std::cout << "Exporting data to file" << std::endl;
+    std::cout << "Exporting data_array to file" << std::endl;
 
     std::ofstream out;
     out.open(filepath);
@@ -78,13 +107,13 @@ void Interpolator3D::export_data_to_file (std::string filepath)
     // printing n_x, n_y, n_z into the first line
     out << "#N " << x_pos.size() << " " << y_pos.size() << " " << z_pos.size() << std::endl;
 
-    for (luint i=0; i<data.size(); i++)
+    for (luint i=0; i<x_pos.size()-1; i++)
     {
-        for (luint j=0; j<data[0].size(); j++)
+        for (luint j=0; j<y_pos.size()-1; j++)
         {
-            for (luint k=0; k<data[0][0].size(); k++)
+            for (luint k=0; k<z_pos.size()-1; k++)
             {
-                out << std::setprecision(10) << i << " " << j << " " << k << " " << x_pos[i] << " " << y_pos[j] << " " << z_pos[k] << " " << data[i][j][k] << std::endl;
+                out << std::setprecision(10) << i << " " << j << " " << k << " " << x_pos[i] << " " << y_pos[j] << " " << z_pos[k] << " " << data_array[i][j][k] << std::endl;
             }
             out << std::endl;
         }
@@ -93,11 +122,11 @@ void Interpolator3D::export_data_to_file (std::string filepath)
 
     out.close();
 
-    std::cout << "Finished exporting data to file" << std::endl;
+    std::cout << "Finished exporting data_array to file" << std::endl;
 }
 
 
-void Interpolator3D::load_data (std::string filepath)
+void Interpolator3D::import_data (std::string filepath)
 {
     std::ifstream in;
     in.open(filepath);
@@ -114,31 +143,16 @@ void Interpolator3D::load_data (std::string filepath)
     {
         line_vec.push_back(element);
     }
-    if (line_vec[0] != "#N") { std::cerr << "Wrong data format, use generate_data() to generate data in the desired format. Aborting!" << std::endl; exit(0); }
+    if (line_vec[0] != "#N") { std::cerr << "Wrong data_array format, use generate_data() to generate data_array in the desired format. Aborting!" << std::endl; exit(0); }
+
     luint n_x = std::stoi(line_vec[1]);
     luint n_y = std::stoi(line_vec[2]);
     luint n_z = std::stoi(line_vec[3]);
-
-    line_vec.clear();
-
     x_pos.resize(n_x);
     y_pos.resize(n_y);
     z_pos.resize(n_z);
 
-    // getting the rest of the data
-    vec_3d new_data;
-    new_data.resize(n_x);
-    for (luint i=0; i<n_x; i++)
-    {
-        new_data[i].resize(n_y);
-    }
-    for (luint i=0; i<n_x; i++)
-    {
-        for (luint j=0; j<n_y; j++)
-        {
-            new_data[i][j].resize(n_z);
-        }
-    }
+    prepare_data_array();
 
     luint i,j,k;
     while(std::getline(in, line))
@@ -147,6 +161,7 @@ void Interpolator3D::load_data (std::string filepath)
         {
             std::istringstream ss(line);
             std::string element;
+            line_vec.clear();
             while (std::getline(ss, element, ' '))
             {
                 line_vec.push_back(element);
@@ -160,14 +175,12 @@ void Interpolator3D::load_data (std::string filepath)
             y_pos[j] = std::stod(line_vec[4]);
             z_pos[k] = std::stod(line_vec[5]);
 
-            new_data[i][j][k] = std::stod(line_vec[6]);
+            data_array[i][j][k] = std::stod(line_vec[6]);
 
             line_vec.clear();
         }
     }
     in.close();
-
-    data = new_data;
 }
 
 
@@ -177,31 +190,17 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), D
     luint n_y = config.n_y;
     luint n_z = config.n_z;
     
-    // initializing 3d vector and resizing it to size n_x,n_y,n_z
-    vec_3d new_data;
-    new_data.resize(n_x);
-    for (luint i=0; i<n_x; i++)
-    {
-        new_data[i].resize(n_y);
-    }
-    for (luint i=0; i<n_x; i++)
-    {
-        for (luint j=0; j<n_y; j++)
-        {
-            new_data[i][j].resize(n_z);
-        }
-    }
+    set_grid(config);
+    prepare_data_array();
 
-    set_grid_pos(config);
-
-    // filling new_data with data from function func
+    // filling data_array with function values
     for (luint i=0; i<n_x; i++)
     {
         for (luint j=0; j<n_y; j++)
         {
             for (luint k=0; k<n_z; k++)
             {
-                new_data[i][j][k] = func(x_pos[i],y_pos[j],z_pos[k]);
+                data_array[i][j][k] = func(x_pos[i],y_pos[j],z_pos[k]);
             }
         }
         if (progress_monitor && (i % 10 == 0))
@@ -209,53 +208,72 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), D
             std::cout << i+1 << std::endl;
         }
     }
+}
 
-    data = new_data;
+
+std::vector<luint> Interpolator3D::find_indices_of_closest_smaller_data_point (double x, double y, double z)
+{
+    // TODO figure out how to deal with known data_array point hit or if this special case needs to be handled at all
+
+    // finding corners of cuboid which x,y,z is inside of
+    luint i_0(x_pos.size()-1), j_0(y_pos.size()-1), k_0(z_pos.size()-1);
+    for (luint i=0; i<x_pos.size(); i++)
+    {
+        if (x_pos[i] > x)
+        {
+            i_0 = i;
+            break;
+        }
+    }
+    for (luint j=0; j<y_pos.size(); j++)
+    {
+        if (y_pos[j] > y)
+        {
+            j_0 = j;
+            break;
+        }
+    }
+    for (luint k=0; k<z_pos.size(); k++)
+    {
+        if (z_pos[k] > z)
+        {
+            k_0 = k;
+            break;
+        }
+    }
+
+    std::vector<luint> ret;
+
+    ret.push_back(i_0);
+    ret.push_back(j_0);
+    ret.push_back(k_0);
+
+    return ret;
+}
+
+
+double Interpolator3D::safe_get_data_point (int i, int j, int k) // ints by design, these are intended to be <0 sometimes, may need to be made long int but realistically not
+{
+    if (i<0) { i = 0; }
+    else if (i>x_pos.size()-1) { i = x_pos.size()-1; }
+
+    if (j<0) { j = 0; }
+    else if (j>y_pos.size()-1) { j = y_pos.size()-1; }
+
+    if (k<0) { k = 0; }
+    else if (k>z_pos.size()-1) { k = z_pos.size()-1; }
+
+    return data_array[i][j][k];
 }
 
 
 double Interpolator3D::trilinear_get_value (double x, double y, double z)
 {
-    // TODO figure out how to deal with known data point hit or if this special case needs to be handled at all
+    std::vector<luint> indices_vec = find_indices_of_closest_smaller_data_point(x,y,z);
 
-    // handling inputs outside of known range
-    if (x < x_pos[0] || x > x_pos[x_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-    if (y < y_pos[0] || y > y_pos[y_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-    if (z < z_pos[0] || z > z_pos[z_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+    luint i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
 
-    // finding corners of cuboid which x,y,z is inside of
-    double x_0(0), x_1(0), y_0(0), y_1(0), z_0(0), z_1(0);
-    luint i_0(0), j_0(0), k_0(0);
-    for (luint i=0; i<x_pos.size()-1; i++)
-    {
-        if (x_pos[i+1] > x)
-        {
-            x_0 = x_pos[i];
-            x_1 = x_pos[i+1];
-            i_0 = i;
-            break;
-        }
-    }
-    for (luint j=0; j<y_pos.size()-1; j++)
-    {
-        if (y_pos[j+1] > y)
-        {
-            y_0 = y_pos[j];
-            y_1 = y_pos[j+1];
-            j_0 = j;
-            break;
-        }
-    }
-    for (luint k=0; k<z_pos.size()-1; k++)
-    {
-        if (z_pos[k+1] > z)
-        {
-            z_0 = z_pos[k];
-            z_1 = z_pos[k+1];
-            k_0 = k;
-            break;
-        }
-    }
+    double x_0(x_pos[i_0]), x_1(x_pos[i_0+1]), y_0(y_pos[j_0]), y_1(y_pos[j_0+1]), z_0(z_pos[k_0]), z_1(z_pos[k_0+1]);
 
     // slopes
     double dx = (x-x_0)/(x_1-x_0);
@@ -263,10 +281,10 @@ double Interpolator3D::trilinear_get_value (double x, double y, double z)
     double dz = (z-z_0)/(z_1-z_0);
 
     // interpolating along x
-    double c_00 = data[i_0][j_0][k_0] * (1.0-dx) + data[i_0+1][j_0][k_0] * dx;
-    double c_01 = data[i_0][j_0][k_0+1] * (1.0-dx) + data[i_0+1][j_0][k_0+1] * dx;
-    double c_10 = data[i_0][j_0+1][k_0] * (1.0-dx) + data[i_0+1][j_0+1][k_0] * dx;
-    double c_11 = data[i_0][j_0+1][k_0+1] * (1.0-dx) + data[i_0+1][j_0+1][k_0+1] * dx;
+    double c_00 = safe_get_data_point(i_0,j_0,k_0) * (1.0-dx) + safe_get_data_point(i_0+1,j_0,k_0) * dx;
+    double c_01 = safe_get_data_point(i_0,j_0,k_0+1) * (1.0-dx) + safe_get_data_point(i_0+1,j_0,k_0+1) * dx;
+    double c_10 = safe_get_data_point(i_0,j_0+1,k_0) * (1.0-dx) + safe_get_data_point(i_0+1,j_0+1,k_0) * dx;
+    double c_11 = safe_get_data_point(i_0,j_0+1,k_0+1) * (1.0-dx) + safe_get_data_point(i_0+1,j_0+1,k_0+1) * dx;
 
     // interpolating along y
     double c_0 = c_00 * (1.0-dy) + c_10 * dy;
@@ -307,311 +325,13 @@ double Interpolator3D::tricubic_interpolate (double p[4][4][4], double x, double
 }
 
 
-double Interpolator3D::slope_at_vertex (XYZ t, int i, int j, int k)
-{
-    double dp, dt;
-    double p_m1, p_1;
-    luint index = (t==X) ? i : j;
-    
-    if (index==0)
-    {
-        if (t==X)
-        {
-            p_1 = data[i+1][j][k];
-            p_m1 = data[i][j][k];
-            dt = x_pos[i+1]-x_pos[i];
-            return (p_1-p_m1)/dt;
-        }
-        else
-        {
-            p_1 = data[i][j+1][k];
-            p_m1 = data[i][j][k];
-            dt = y_pos[j+1]-y_pos[j];
-            return (p_1-p_m1)/dt;
-        }
-    }
-    else if (index==(t==X ? x_pos.size()-1 : y_pos.size()-1)) // TODO get rid of switch statements
-    {
-        switch (t)
-        {
-        case X:
-            p_1 = data[i][j][k];
-            p_m1 = data[i-1][j][k];
-            dt = x_pos[i]-x_pos[i-1];
-            return (p_1-p_m1)/dt;
-        break;
-        
-        case Y:
-            p_1 = data[i][j][k];
-            p_m1 = data[i][j-1][k];
-            dt = y_pos[j]-y_pos[j-1];
-            return (p_1-p_m1)/dt;
-        break;
-        }
-    }
-    else
-    {
-        switch (t)
-        {
-        case X:
-            p_1 = data[i+1][j][k];
-            p_m1 = data[i-1][j][k];
-            dt = x_pos[i+1]-x_pos[i-1];
-            return (p_1-p_m1)/dt;
-        break;
-        
-        case Y:
-            p_1 = data[i][j+1][k];
-            p_m1 = data[i][j-1][k];
-            dt = y_pos[j+1]-y_pos[j-1];
-            return (p_1-p_m1)/dt;
-        break;
-        }
-    }
-    return 0;
-}
-
-
-
-
-double Interpolator3D::slope_at_vertex (XYZ t_1, XYZ t_2, int i, int j, int k)
-{
-    double dp_x, dp_y, dt_x, dt_y;
-    double p_m1m1, p_11, p_m11, p_1m1;
-
-    if (i==0 && j==0)
-    {
-        p_11 = data[i+1][j+1][k];
-        p_1m1 = data[i+1][j][k];
-        p_m11 = data[i][j+1][k];
-        p_m1m1 = data[i][j][k];
-
-        dt_x = x_pos[i+1]-x_pos[i];
-        dt_y = y_pos[j+1]-y_pos[j];
-
-        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
-    }
-    else if (i==0 && j==y_pos.size()-1)
-    {
-        p_11 = data[i+1][j][k];
-        p_1m1 = data[i+1][j-1][k];
-        p_m11 = data[i][j][k];
-        p_m1m1 = data[i][j-1][k];
-
-        dt_x = x_pos[i+1]-x_pos[i];
-        dt_y = y_pos[j]-y_pos[j-1];
-
-        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
-    }
-    else if (i==x_pos.size()-1 && j==0)
-    {
-        p_11 = data[i][j+1][k];
-        p_1m1 = data[i][j][k];
-        p_m11 = data[i-1][j+1][k];
-        p_m1m1 = data[i-1][j][k];
-
-        dt_x = x_pos[i]-x_pos[i-1];
-        dt_y = y_pos[j+1]-y_pos[j];
-
-        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
-    }
-    else if (i==x_pos.size()-1 && j==y_pos.size()-1)
-    {
-        p_11 = data[i][j][k];
-        p_1m1 = data[i][j-1][k];
-        p_m11 = data[i-1][j][k];
-        p_m1m1 = data[i-1][j-1][k];
-
-        dt_x = x_pos[i]-x_pos[i-1];
-        dt_y = y_pos[j]-y_pos[j-1];
-
-        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
-    }
-    else if (i==0)
-    {
-        p_11 = data[i+1][j+1][k];
-        p_1m1 = data[i+1][j-1][k];
-        p_m11 = data[i][j+1][k];
-        p_m1m1 = data[i][j-1][k];
-
-        dt_x = x_pos[i+1]-x_pos[i];
-        dt_y = y_pos[j+1]-y_pos[j-1];
-
-        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
-    }
-    else if (j==0)
-    {
-        p_11 = data[i+1][j+1][k];
-        p_1m1 = data[i+1][j][k];
-        p_m11 = data[i-1][j+1][k];
-        p_m1m1 = data[i-1][j][k];
-
-        dt_x = x_pos[i+1]-x_pos[i-1];
-        dt_y = y_pos[j+1]-y_pos[j];
-
-        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
-    }
-    else
-    {
-        p_11 = data[i+1][j+1][k];
-        p_1m1 = data[i+1][j-1][k];
-        p_m11 = data[i-1][j+1][k];
-        p_m1m1 = data[i-1][j-1][k];
-
-        dt_x = x_pos[i+1]-x_pos[i-1];
-        dt_y = y_pos[j+1]-y_pos[j-1];
-
-        return (p_11-p_1m1-p_m11+p_m1m1)/dt_x/dt_y;
-    }
-}
-
-
-double Interpolator3D::bicubic_get_value (double x, double y, luint k_0)
-{
-    // handling inputs outside of known range
-    if (x < x_pos[0] || x > x_pos[x_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-    if (y < y_pos[0] || y > y_pos[y_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-
-    // finding corners of cuboid which x,y,z is inside of
-    double x_0(0), x_1(0), y_0(0), y_1(0), z_0(0), z_1(0);
-    luint i_0(0), j_0(0);
-    for (luint i=0; i<x_pos.size()-1; i++)
-    {
-        if (x_pos[i+1] > x)
-        {
-            x_0 = x_pos[i];
-            x_1 = x_pos[i+1];
-            i_0 = i;
-            break;
-        }
-    }
-    for (luint j=0; j<y_pos.size()-1; j++)
-    {
-        if (y_pos[j+1] > y)
-        {
-            y_0 = y_pos[j];
-            y_1 = y_pos[j+1];
-            j_0 = j;
-            break;
-        }
-    }
-
-    double a_vec[16]{0.0};
-    
-    double dx = x_pos[i_0+1]-x_pos[i_0];
-    double dy = y_pos[j_0+1]-y_pos[j_0];
-
-    double x_vec[16] =
-    {
-        data[i_0][j_0][k_0],
-        data[i_0+1][j_0][k_0],
-        data[i_0][j_0+1][k_0],
-        data[i_0+1][j_0+1][k_0],
-        dx*slope_at_vertex(X,i_0,j_0,k_0),
-        dx*slope_at_vertex(X,i_0+1,j_0,k_0),
-        dx*slope_at_vertex(X,i_0,j_0+1,k_0),
-        dx*slope_at_vertex(X,i_0+1,j_0+1,k_0),
-        dy*slope_at_vertex(Y,i_0,j_0,k_0),
-        dy*slope_at_vertex(Y,i_0+1,j_0,k_0),
-        dy*slope_at_vertex(Y,i_0,j_0+1,k_0),
-        dy*slope_at_vertex(Y,i_0+1,j_0+1,k_0),
-        dx*dy*slope_at_vertex(X,Y,i_0,j_0,k_0),
-        dx*dy*slope_at_vertex(X,Y,i_0+1,j_0,k_0),
-        dx*dy*slope_at_vertex(X,Y,i_0,j_0+1,k_0),
-        dx*dy*slope_at_vertex(X,Y,i_0+1,j_0+1,k_0)
-    };
-
-    for (int i=0; i<16; i++)
-    {
-        for (int j=0; j<16; j++)
-        {
-            a_vec[i] += BICUBIC_COEFFICIENTS[i][j] * x_vec[j];
-        }
-    }
-
-    // normalizing the cubiod to a unit cube
-    x = (x-x_0)/(x_1-x_0);
-    y = (y-y_0)/(y_1-y_0);
-
-    double interpolated_value(0);
-
-    for (int i=0; i<=3; i++)
-    {
-        for (int j=0; j<=3; j++)
-        {
-            interpolated_value += a_vec[i+4*j] * std::pow(x,i) * std::pow(y,j);
-        }
-    }
-
-    return interpolated_value;
-}
-
-
 double Interpolator3D::bicubic_unilinear_get_value (double x, double y, double z)
 {
-    if (z < z_pos[0] || z > z_pos[z_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-    double z_0(0), z_1(0);
-    luint k_0(0);
-    for (luint k=0; k<z_pos.size()-1; k++)
-    {
-        if (z_pos[k+1] > z)
-        {
-            z_0 = z_pos[k];
-            z_1 = z_pos[k+1];
-            k_0 = k;
-            break;
-        }
-    }
+    std::vector<luint> indices_vec = find_indices_of_closest_smaller_data_point(x,y,z);
 
-    double bicubic_result_0 = bicubic_get_value(x,y,k_0);
-    double bicubic_result_1 = bicubic_get_value(x,y,k_0+1);
+    luint i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
 
-    z = (z-z_0)/(z_pos[k_0+1]-z_pos[k_0]);
-
-    return bicubic_result_0+z*(bicubic_result_1-bicubic_result_0);
-}
-
-
-double Interpolator3D::bicubic_unilinear_get_value_test (double x, double y, double z)
-{
-    // handling inputs outside of known range
-    if (x < x_pos[0] || x > x_pos[x_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-    if (y < y_pos[0] || y > y_pos[y_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-    if (z < z_pos[0] || z > z_pos[z_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-
-    // finding corners of cuboid which x,y,z is inside of
-    double x_0(0), x_1(0), y_0(0), y_1(0), z_0(0), z_1(0);
-    luint i_0(0), j_0(0), k_0(0);
-    for (luint i=0; i<x_pos.size()-1; i++)
-    {
-        if (x_pos[i+1] > x)
-        {
-            x_0 = x_pos[i];
-            x_1 = x_pos[i+1];
-            i_0 = i;
-            break;
-        }
-    }
-    for (luint j=0; j<y_pos.size()-1; j++)
-    {
-        if (y_pos[j+1] > y)
-        {
-            y_0 = y_pos[j];
-            y_1 = y_pos[j+1];
-            j_0 = j;
-            break;
-        }
-    }
-    for (luint k=0; k<z_pos.size()-1; k++)
-    {
-        if (z_pos[k+1] > z)
-        {
-            z_0 = z_pos[k];
-            z_1 = z_pos[k+1];
-            k_0 = k;
-            break;
-        }
-    }
+    double x_0(x_pos[i_0]), x_1(x_pos[i_0+1]), y_0(y_pos[j_0]), y_1(y_pos[j_0+1]), z_0(z_pos[k_0]), z_1(z_pos[k_0+1]);
 
     double p_z_0[4][4];
     double p_z_1[4][4];
@@ -619,8 +339,8 @@ double Interpolator3D::bicubic_unilinear_get_value_test (double x, double y, dou
     {
         for (int j=0; j<=3; j++)
         {
-            p_z_0[i][j] = data[i_0+i-1][j_0+j-1][k_0];
-            p_z_1[i][j] = data[i_0+i-1][j_0+j-1][k_0+1];
+            p_z_0[i][j] = safe_get_data_point(i_0+i-1,j_0+j-1,k_0);
+            p_z_1[i][j] = safe_get_data_point(i_0+i-1,j_0+j-1,k_0+1);
         }
     }
 
@@ -635,46 +355,13 @@ double Interpolator3D::bicubic_unilinear_get_value_test (double x, double y, dou
 }
 
 
-double Interpolator3D::tricubic_get_value_test (double x, double y, double z)
+double Interpolator3D::tricubic_get_value (double x, double y, double z)
 {
-    // handling inputs outside of known range
-    if (x < x_pos[0] || x > x_pos[x_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-    if (y < y_pos[0] || y > y_pos[y_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
-    if (z < z_pos[0] || z > z_pos[z_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+    std::vector<luint> indices_vec = find_indices_of_closest_smaller_data_point(x,y,z);
 
-    // finding corners of cuboid which x,y,z is inside of
-    double x_0(0), x_1(0), y_0(0), y_1(0), z_0(0), z_1(0);
-    luint i_0(0), j_0(0), k_0(0);
-    for (luint i=0; i<x_pos.size()-1; i++)
-    {
-        if (x_pos[i+1] > x)
-        {
-            x_0 = x_pos[i];
-            x_1 = x_pos[i+1];
-            i_0 = i;
-            break;
-        }
-    }
-    for (luint j=0; j<y_pos.size()-1; j++)
-    {
-        if (y_pos[j+1] > y)
-        {
-            y_0 = y_pos[j];
-            y_1 = y_pos[j+1];
-            j_0 = j;
-            break;
-        }
-    }
-    for (luint k=0; k<z_pos.size()-1; k++)
-    {
-        if (z_pos[k+1] > z)
-        {
-            z_0 = z_pos[k];
-            z_1 = z_pos[k+1];
-            k_0 = k;
-            break;
-        }
-    }
+    luint i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
+
+    double x_0(x_pos[i_0]), x_1(x_pos[i_0+1]), y_0(y_pos[j_0]), y_1(y_pos[j_0+1]), z_0(z_pos[k_0]), z_1(z_pos[k_0+1]);
 
     double p[4][4][4];
     for (int i=0; i<=3; i++)
@@ -683,7 +370,7 @@ double Interpolator3D::tricubic_get_value_test (double x, double y, double z)
         {
             for (int k=0; k<=3; k++)
             {
-                p[i][j][k] = data[i+i_0-1][j+j_0-1][k+k_0-1];
+                p[i][j][k] = safe_get_data_point(i+i_0-1,j+j_0-1,k+k_0-1);
             }
         }
     }

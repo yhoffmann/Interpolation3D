@@ -15,6 +15,13 @@ enum XYZ
 };
 
 
+struct IndexAndPositions
+{
+    luint index;
+    double t_0, t_1;
+};
+
+
 typedef std::vector<std::vector<std::vector<double>>> vec_3d;
 
 
@@ -28,42 +35,33 @@ struct DataGenerationConfig
 
 class Interpolator3D
 {
-public:
+private:
 
-    vec_3d data;
+    vec_3d data_array;
     std::vector<double> x_pos;
     std::vector<double> y_pos;
     std::vector<double> z_pos;
 
-    bool data_is_loaded = false;
-    bool grid_pos_is_set = false;
+    bool grid_is_set = false;
 
-    void set_grid_pos(DataGenerationConfig& config);
+    void set_grid(DataGenerationConfig& config);
 
-    double inputs_for_pos(XYZ xyz, luint index, DataGenerationConfig& config);
+    void prepare_data_array();
 
-    double slope_at_vertex(XYZ t_1, int i, int j, int k);
-    
-    double slope_at_vertex(XYZ t_1, XYZ t_2, int i, int j, int k);
+    double pos_of_grid_point(XYZ xyz, luint index, DataGenerationConfig& config);
+
+    std::vector<luint> find_indices_of_closest_smaller_data_point(double x, double y, double z);
 
 
 public:
 
-    //TrilinearInterpolator();
-
     void generate_data(double func(double x, double y, double z), DataGenerationConfig& config, bool progress_monitor);
 
-    void export_data_to_file(std::string filepath);
+    void export_data(std::string filepath);
 
-    void load_data(std::string filepath);
+    void import_data(std::string filepath);
 
-    double trilinear_get_value(double x, double y, double z);
-
-    double bicubic_get_value(double x, double y, luint k_0);
-    
-    double bicubic_unilinear_get_value(double x, double y, double z);
-    double bicubic_unilinear_get_value_test(double x, double y, double z);
-    double tricubic_get_value_test(double x, double y, double z);
+    double safe_get_data_point(int i, int j, int k);
 
     double unicubic_interpolate(double p[4], double x);
 
@@ -71,7 +69,13 @@ public:
 
     double tricubic_interpolate(double p[4][4][4], double x, double y, double z);
 
-    double unicubic_get_value(double x, double y, double z);
+    double trilinear_get_value(double x, double y, double z);
+
+    double bicubic_get_value(double x, double y, luint k_0);
+    
+    double bicubic_unilinear_get_value(double x, double y, double z);
+
+    double tricubic_get_value(double x, double y, double z);
 };
 
 
