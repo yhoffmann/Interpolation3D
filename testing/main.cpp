@@ -21,9 +21,9 @@ int main (int argc, char** argv)
     conf.n_y = 100;
     conf.n_z = 100;
 
-    conf.x_grid_spacing = "linear";
-    conf.y_grid_spacing = "linear";
-    conf.z_grid_spacing = "linear";
+    //conf.x_grid_spacing = "log";
+    //conf.y_grid_spacing = "log";
+    //conf.z_grid_spacing = "log";
 
     conf.x_min = 0;
     conf.y_min = 0;
@@ -36,15 +36,25 @@ int main (int argc, char** argv)
     ip.generate_data(f,conf,false);
     //ip.load_data(filepath);
 
-    double x = 3;
-    double y = 0.5;
-    double z = 0.5;
+    double x = 1.1;
+    double y = 1.0;
+    double z = 0.1;
     
     std::cout << ip.trilinear_get_value(x,y,z) << " " << f(x,y,z) << ", err: " << (ip.trilinear_get_value(x,y,z)-f(x,y,z))/f(x,y,z) << std::endl;
 
     std::cout << ip.bicubic_unilinear_get_value(x,y,z) << " " << f(x,y,z) << ", err: " << (ip.bicubic_unilinear_get_value(x,y,z)-f(x,y,z))/f(x,y,z) << std::endl;
-    
 
+    std::cout << ip.tricubic_get_value_test(x,y,z) << " " << f(x,y,z) << ", err: " << (ip.tricubic_get_value_test(x,y,z)-f(x,y,z))/f(x,y,z) << std::endl;
+/*
+    luint imax = 1e3;
+    for (luint i=0; i<imax; i++)
+    {
+        double x = 0.1+(2.5-0.1)*double(i)/double(imax-1);
+        std::cout << x << " " << ip.bicubic_unilinear_get_value(x,y,z) << " " << ip.trilinear_get_value(x,y,z) << " " << ip.bicubic_unilinear_get_value_test(x,y,z) << " " << ip.tricubic_get_value_test(x,y,z) << " " << f(x,y,z) << std::endl;
+        //(void)ip.tricubic_get_value_test(x,y,z);
+        //(void)ip.bicubic_unilinear_get_value(x,y,z);
+    }
+*/
     //ip.print_data_to_file(filepath);
     
     return 0;

@@ -277,43 +277,60 @@ double Interpolator3D::trilinear_get_value (double x, double y, double z)
 }
 
 
+double Interpolator3D::unicubic_interpolate (double p[4], double x)
+{
+	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+}
+
+double Interpolator3D::bicubic_interpolate (double p[4][4], double x, double y)
+{
+	double unicubic_result[4];
+
+	unicubic_result[0] = unicubic_interpolate(p[0], y);
+	unicubic_result[1] = unicubic_interpolate(p[1], y);
+	unicubic_result[2] = unicubic_interpolate(p[2], y);
+	unicubic_result[3] = unicubic_interpolate(p[3], y);
+
+	return unicubic_interpolate(unicubic_result, x);
+}
+
+double Interpolator3D::tricubic_interpolate (double p[4][4][4], double x, double y, double z)
+{
+	double bicubic_result[4];
+
+	bicubic_result[0] = bicubic_interpolate(p[0], y, z);
+	bicubic_result[1] = bicubic_interpolate(p[1], y, z);
+	bicubic_result[2] = bicubic_interpolate(p[2], y, z);
+	bicubic_result[3] = bicubic_interpolate(p[3], y, z);
+    
+	return unicubic_interpolate(bicubic_result, x);
+}
+
+
 double Interpolator3D::slope_at_vertex (XYZ t, int i, int j, int k)
 {
     double dp, dt;
     double p_m1, p_1;
-    luint index;
-
-    switch (t)
-    {
-    case X:
-        index = i;
-    break;
-    
-    case Y:
-        index = j;
-    break;
-    }
+    luint index = (t==X) ? i : j;
     
     if (index==0)
     {
-        switch (t)
+        if (t==X)
         {
-        case X:
             p_1 = data[i+1][j][k];
             p_m1 = data[i][j][k];
             dt = x_pos[i+1]-x_pos[i];
             return (p_1-p_m1)/dt;
-        break;
-        
-        case Y:
+        }
+        else
+        {
             p_1 = data[i][j+1][k];
             p_m1 = data[i][j][k];
             dt = y_pos[j+1]-y_pos[j];
             return (p_1-p_m1)/dt;
-        break;
         }
     }
-    else if (index==(t==X ? x_pos.size()-1 : y_pos.size()-1))
+    else if (index==(t==X ? x_pos.size()-1 : y_pos.size()-1)) // TODO get rid of switch statements
     {
         switch (t)
         {
@@ -354,35 +371,7 @@ double Interpolator3D::slope_at_vertex (XYZ t, int i, int j, int k)
     return 0;
 }
 
-/*
-double Interpolator3D::unicubic_interpolate (double p[4], double x) {
-	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
-}
 
-double Interpolator3D::bicubic_interpolate (double p[4][4], double x, double y) {
-	double arr[4];
-	arr[0] = unicubic_interpolate(p[0], y);
-	arr[1] = unicubic_interpolate(p[1], y);
-	arr[2] = unicubic_interpolate(p[2], y);
-	arr[3] = unicubic_interpolate(p[3], y);
-	return unicubic_interpolate(arr, x);
-}
-
-double Interpolator3D::tricubic_interpolate (double p[4][4][4], double x, double y, double z) {
-	double arr[4];
-	arr[0] = bicubic_interpolate(p[0], y, z);
-	arr[1] = bicubic_interpolate(p[1], y, z);
-	arr[2] = bicubic_interpolate(p[2], y, z);
-	arr[3] = bicubic_interpolate(p[3], y, z);
-	return unicubic_interpolate(arr, x);
-}
-
-
-double Interpolator3D::bicubic_unilinear_get_value (double x, double y, double z)
-{
-
-}
-*/
 
 
 double Interpolator3D::slope_at_vertex (XYZ t_1, XYZ t_2, int i, int j, int k)
@@ -577,7 +566,133 @@ double Interpolator3D::bicubic_unilinear_get_value (double x, double y, double z
     double bicubic_result_0 = bicubic_get_value(x,y,k_0);
     double bicubic_result_1 = bicubic_get_value(x,y,k_0+1);
 
-    z = (z_1-z_0)/(z_pos[k_0+1]-z_pos[k_0]);
+    z = (z-z_0)/(z_pos[k_0+1]-z_pos[k_0]);
 
     return bicubic_result_0+z*(bicubic_result_1-bicubic_result_0);
+}
+
+
+double Interpolator3D::bicubic_unilinear_get_value_test (double x, double y, double z)
+{
+    // handling inputs outside of known range
+    if (x < x_pos[0] || x > x_pos[x_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+    if (y < y_pos[0] || y > y_pos[y_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+    if (z < z_pos[0] || z > z_pos[z_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+
+    // finding corners of cuboid which x,y,z is inside of
+    double x_0(0), x_1(0), y_0(0), y_1(0), z_0(0), z_1(0);
+    luint i_0(0), j_0(0), k_0(0);
+    for (luint i=0; i<x_pos.size()-1; i++)
+    {
+        if (x_pos[i+1] > x)
+        {
+            x_0 = x_pos[i];
+            x_1 = x_pos[i+1];
+            i_0 = i;
+            break;
+        }
+    }
+    for (luint j=0; j<y_pos.size()-1; j++)
+    {
+        if (y_pos[j+1] > y)
+        {
+            y_0 = y_pos[j];
+            y_1 = y_pos[j+1];
+            j_0 = j;
+            break;
+        }
+    }
+    for (luint k=0; k<z_pos.size()-1; k++)
+    {
+        if (z_pos[k+1] > z)
+        {
+            z_0 = z_pos[k];
+            z_1 = z_pos[k+1];
+            k_0 = k;
+            break;
+        }
+    }
+
+    double p_z_0[4][4];
+    double p_z_1[4][4];
+    for (int i=0; i<=3; i++)
+    {
+        for (int j=0; j<=3; j++)
+        {
+            p_z_0[i][j] = data[i_0+i-1][j_0+j-1][k_0];
+            p_z_1[i][j] = data[i_0+i-1][j_0+j-1][k_0+1];
+        }
+    }
+
+    x = (x-x_0)/(x_1-x_0);
+    y = (y-y_0)/(y_1-y_0);
+    z = (z-z_0)/(z_1-z_0);
+
+    double bicubic_result_0 = bicubic_interpolate(p_z_0,x,y);
+    double bicubic_result_1 = bicubic_interpolate(p_z_1,x,y);
+
+    return bicubic_result_0+z*(bicubic_result_1-bicubic_result_0);
+}
+
+
+double Interpolator3D::tricubic_get_value_test (double x, double y, double z)
+{
+    // handling inputs outside of known range
+    if (x < x_pos[0] || x > x_pos[x_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+    if (y < y_pos[0] || y > y_pos[y_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+    if (z < z_pos[0] || z > z_pos[z_pos.size()-1]) { std::cout << "Requested value outside of known range! Aborting" << std::endl; exit(0); }
+
+    // finding corners of cuboid which x,y,z is inside of
+    double x_0(0), x_1(0), y_0(0), y_1(0), z_0(0), z_1(0);
+    luint i_0(0), j_0(0), k_0(0);
+    for (luint i=0; i<x_pos.size()-1; i++)
+    {
+        if (x_pos[i+1] > x)
+        {
+            x_0 = x_pos[i];
+            x_1 = x_pos[i+1];
+            i_0 = i;
+            break;
+        }
+    }
+    for (luint j=0; j<y_pos.size()-1; j++)
+    {
+        if (y_pos[j+1] > y)
+        {
+            y_0 = y_pos[j];
+            y_1 = y_pos[j+1];
+            j_0 = j;
+            break;
+        }
+    }
+    for (luint k=0; k<z_pos.size()-1; k++)
+    {
+        if (z_pos[k+1] > z)
+        {
+            z_0 = z_pos[k];
+            z_1 = z_pos[k+1];
+            k_0 = k;
+            break;
+        }
+    }
+
+    double p[4][4][4];
+    for (int i=0; i<=3; i++)
+    {
+        for (int j=0; j<=3; j++)
+        {
+            for (int k=0; k<=3; k++)
+            {
+                p[i][j][k] = data[i+i_0-1][j+j_0-1][k+k_0-1];
+            }
+        }
+    }
+
+    x = (x-x_0)/(x_1-x_0);
+    y = (y-y_0)/(y_1-y_0);
+    z = (z-z_0)/(z_1-z_0);
+
+    double tricubic_result = tricubic_interpolate(p,x,y,z);
+
+    return tricubic_result;
 }
