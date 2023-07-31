@@ -35,7 +35,7 @@ struct DataGenerationConfig
 
 class Interpolator3D
 {
-private:
+public:
 
     vec_3d data_array;
     std::vector<double> x_pos;
@@ -54,6 +54,11 @@ private:
 
 
 public:
+
+    double slope_at_vertex(XYZ,XYZ,int,int,int);
+    double slope_at_vertex(XYZ,int,int,int);
+    double bicubic_get_value_old(double,double,luint);
+    double bicubic_unilinear_get_value_old(double,double,double);
 
     void generate_data(double func(double x, double y, double z), DataGenerationConfig& config, bool progress_monitor);
 

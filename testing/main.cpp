@@ -5,7 +5,7 @@
 
 double f(double x, double y, double z)
 {
-    return exp(-x*x-y*y-z*z);
+    return x*x*y*y*cos(z)*exp(-x*x-y*y-x*y*cos(z));
 }
 
 
@@ -17,9 +17,9 @@ int main (int argc, char** argv)
 
     DataGenerationConfig conf;
 
-    conf.n_x = 6;
-    conf.n_y = 6;
-    conf.n_z = 6;
+    conf.n_x = 12;
+    conf.n_y = 12;
+    conf.n_z = 40;
 
     //conf.x_grid_spacing = "log";
     //conf.y_grid_spacing = "log";
@@ -27,18 +27,18 @@ int main (int argc, char** argv)
 
     conf.x_min = 0;
     conf.y_min = 0;
-    conf.z_min = 0;
+    conf.z_min = -0.1;
 
     conf.x_max = 5;
     conf.y_max = 5;
-    conf.z_max = 5;
+    conf.z_max = M_PI+0.1;
 
     ip.generate_data(f,conf,false);
     //ip.load_data(filepath);
-std::cout << "here" << std::endl;
-    double x = 3.43544;
-    double y = 1.5;
-    double z = 1.5;
+
+    double x = 1.5;
+    double y = 1.0;
+    double z = 1.0;
     
     std::cout << ip.trilinear_get_value(x,y,z) << " " << f(x,y,z) << ", err: " << (ip.trilinear_get_value(x,y,z)-f(x,y,z))/f(x,y,z) << std::endl;
 
@@ -49,8 +49,8 @@ std::cout << "here" << std::endl;
     luint imax = 1e3;
     for (luint i=0; i<imax; i++)
     {
-        double x = -1.0+(6.0+1.0)*double(i)/double(imax-1);
-        std::cout << x << " " << ip.trilinear_get_value(x,y,z) << " " << ip.bicubic_unilinear_get_value(x,y,z) << " " << ip.tricubic_get_value(x,y,z) << " " << f(x,y,z) << std::endl;
+        double x = -0.5+(5-(-0.5))*double(i)/double(imax-1);
+        std::cout << x << " " << ip.trilinear_get_value(x,y,z) << " " << ip.bicubic_unilinear_get_value(x,y,z) << " " << ip.tricubic_get_value(x,y,z) << " " << f(x,y,z) << " " << ip.bicubic_unilinear_get_value(x,y,z) << std::endl;
         //(void)ip.tricubic_get_value_test(x,y,z);
         //(void)ip.bicubic_unilinear_get_value(x,y,z);
     }
