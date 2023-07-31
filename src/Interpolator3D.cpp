@@ -194,6 +194,7 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), D
     prepare_data_array();
 
     // filling data_array with function values
+    #pragma omp parallel for
     for (luint i=0; i<n_x; i++)
     {
         for (luint j=0; j<n_y; j++)
