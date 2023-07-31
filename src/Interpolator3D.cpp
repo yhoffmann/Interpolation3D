@@ -98,7 +98,7 @@ void Interpolator3D::prepare_data_array()
 
 void Interpolator3D::export_data (std::string filepath) 
 {
-    std::cout << "Exporting data_array to file" << std::endl;
+    std::cout << "Exporting data_array to file..." << std::endl;
 
     std::ofstream out;
     out.open(filepath);
@@ -128,6 +128,8 @@ void Interpolator3D::export_data (std::string filepath)
 
 void Interpolator3D::import_data (std::string filepath)
 {
+    std::cout << "Importing data_array from file..." << std::endl;
+
     std::ifstream in;
     in.open(filepath);
     if (!in.is_open()) { std::cerr << "Could not open given file. Aborting" << std::endl; exit(0); }
@@ -181,6 +183,8 @@ void Interpolator3D::import_data (std::string filepath)
         }
     }
     in.close();
+
+    std::cout << "Finished importing data_array from file" << std::endl;
 }
 
 
