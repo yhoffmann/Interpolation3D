@@ -5,6 +5,10 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <gsl/gsl_interp.h>
+#include <gsl/gsl_spline.h>
+#include <gsl/gsl_interp2d.h>
+#include <gsl/gsl_spline2d.h>
 
 typedef long unsigned int luint;
 
@@ -33,6 +37,25 @@ struct DataGenerationConfig
 };
 
 
+struct GSL3DInterpolationConfig
+{
+    const gsl_interp_type* UNICUBIC = gsl_interp_cspline;
+    const gsl_interp2d_type* BICUBIC = gsl_interp2d_bicubic;
+
+    double xy_array[16];
+    double z_array[4];
+    double x_pos[4];
+    double y_pos[4];
+    double z_pos[4];
+
+    gsl_spline* spline_1d;
+    gsl_spline2d* spline_2d;
+    gsl_interp_accel* x_acc;
+    gsl_interp_accel* y_acc;
+    gsl_interp_accel* z_acc;
+};
+
+
 class Interpolator3D
 {
 public:
@@ -42,7 +65,9 @@ public:
     std::vector<double> y_pos;
     std::vector<double> z_pos;
 
-    bool grid_is_set = false;
+    GSL3DInterpolationConfig gsl_3d;
+
+    double get_clamped_pos(XYZ xyz, int i);
 
     void set_grid(DataGenerationConfig& config);
 
@@ -50,15 +75,10 @@ public:
 
     double pos_of_grid_point(XYZ xyz, luint index, DataGenerationConfig& config);
 
-    std::vector<luint> find_indices_of_closest_smaller_data_point(double x, double y, double z);
+    std::vector<int> find_indices_of_closest_smaller_data_point(double x, double y, double z);
 
 
 public:
-
-    double slope_at_vertex(XYZ,XYZ,int,int,int);
-    double slope_at_vertex(XYZ,int,int,int);
-    double bicubic_get_value_old(double,double,luint);
-    double bicubic_unilinear_get_value_old(double,double,double);
 
     void generate_data(double func(double x, double y, double z), DataGenerationConfig& config, bool progress_monitor);
 
@@ -70,9 +90,15 @@ public:
 
     double unicubic_interpolate(double p[4], double x);
 
-    double bicubic_interpolate(double p[4][4], double x, double y);
+    double unicubic_interpolate_nonreg(double p[4], double t_z[4], double z);
+
+    double bicubic_interpolate(double p[4][4], double y, double z);
+
+    double bicubic_interpolate_nonreg(double p[4][4], double t_y[4], double t_z[4], double y, double z);
 
     double tricubic_interpolate(double p[4][4][4], double x, double y, double z);
+
+    double tricubic_interpolate_nonreg(double p[4][4][4], double t_x[4], double t_y[4], double t_z[4], double x, double y, double z);
 
     double trilinear_get_value(double x, double y, double z);
 
@@ -80,7 +106,17 @@ public:
     
     double bicubic_unilinear_get_value(double x, double y, double z);
 
+    void setup_gsl_interp();
+
+    void init_gsl_interp(int i_0, int j_0, int k_0);
+
+    double tricubic_gsl_get_value(double x, double y, double z);
+
     double tricubic_get_value(double x, double y, double z);
+
+    double tricubic_get_value_nonreg(double x, double y, double z);
+
+    //~Interpolator3D();
 };
 
 
