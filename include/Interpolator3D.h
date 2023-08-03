@@ -4,11 +4,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <string>
-#include <iostream>
-#include <gsl/gsl_interp.h>
-#include <gsl/gsl_spline.h>
-#include <gsl/gsl_interp2d.h>
-#include <gsl/gsl_spline2d.h>
+
 
 typedef long unsigned int luint;
 

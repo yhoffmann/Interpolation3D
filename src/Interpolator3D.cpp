@@ -1,12 +1,10 @@
 #include "../include/Interpolator3D.h"
 #include <cmath>
 #include <string>
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_math.h>
-
 
 double Interpolator3D::pos_of_grid_point (XYZ xyz, luint index, DataGenerationConfig& config)
 {
