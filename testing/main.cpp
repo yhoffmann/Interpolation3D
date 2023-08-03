@@ -6,7 +6,7 @@
 
 double f(double x, double y, double z)
 {
-    return log(x+1.0)*exp(-y*y-z*z);
+    return log(x+1.0)*exp(-x*y*z-y*y/2.0-cos(z)*cos(z));
 }
 
 
@@ -24,41 +24,37 @@ int main (int argc, char** argv)
 
     DataGenerationConfig conf;
 
-    conf.n_x = 6;
-    conf.n_y = 4;
-    conf.n_z = 4;
+    conf.n_x = 201;
+    conf.n_y = 201;
+    conf.n_z = 141;
 
     conf.x_grid_spacing = "log";
-    //conf.y_grid_spacing = "log";
-    //conf.z_grid_spacing = "linear";
+    conf.y_grid_spacing = "log";
+    //conf.z_grid_spacing = "log";
 
     conf.x_min = 0.0;
     conf.y_min = 0.0;
     conf.z_min = 0.0;
 
     conf.x_max = 10;
-    conf.y_max = 4;
-    conf.z_max = 4;
+    conf.y_max = 10;
+    conf.z_max = 10;
 
     ip.generate_data(f,conf,false);
     //ip.load_data(filepath);
 
-    ip.setup_gsl_interp();
-
-    double t[4] = {0.0, 1.0, 2.0, 3.0};
-    double p[4] = {0.0, 1.5, 0.2, 0.5};
-
-    for (int i=0; i<100; i++)
+    double y = 1.0;
+    double z = 1.0;
+    double x = 1.0;
+    //std::cout << x << " " << f(x,y,z) << " " << ip.tricubic_get_value_nonreg(x,y,z) << std::endl;
+    int imax = 1e3+1;
+    for (int i=0; i<imax; i++)
     {
-        double x = 1.0*i/99.0;
-        std::cout << x << " " << ip.unicubic_interpolate_nonreg(p,t,x) << " " << ip.unicubic_interpolate(p,x) << std::endl;
+        double x = 1.0*double(i)/double(imax-1);
+        std::cout << std::setprecision(10) << x << " " << f(x,y,z) << " " << ip.tricubic_get_value_nonreg(x,y,z) << std::endl;
     }
-
-    
 
     //ip.print_data_to_file(filepath);
 
-    
-    
     return 0;
 }

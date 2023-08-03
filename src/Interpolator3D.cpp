@@ -257,24 +257,24 @@ std::vector<int> Interpolator3D::find_indices_of_closest_smaller_data_point (dou
 }
 
 
-double Interpolator3D::get_clamped_pos (XYZ xyz, int i)
+double Interpolator3D::safe_get_pos (XYZ xyz, int i)
 {
     if (xyz == X)
     {
-        if (i<0) return x_pos[0];
-        else if (i>x_pos[x_pos.size()-1]) return x_pos[x_pos.size()-1];
+        if (i<0) return x_pos[0]+double(i)*(x_pos[1]-x_pos[0]);
+        else if (i>int(x_pos.size())-1) return x_pos[x_pos.size()-1]+double(i)*(x_pos[x_pos.size()-1]-x_pos[x_pos.size()-2]);
         else return x_pos[i];
     }
     if (xyz == Y)
     {
-        if (i<0) return y_pos[0];
-        else if (i>y_pos[y_pos.size()-1]) return y_pos[y_pos.size()-1];
+        if (i<0) return y_pos[0]+double(i)*(y_pos[1]-y_pos[0]);
+        else if (i>int(y_pos.size())-1) return y_pos[y_pos.size()-1]+double(i)*(y_pos[y_pos.size()-1]-y_pos[y_pos.size()-2]);
         else return y_pos[i];
     }
-    if (xyz == Z)
+    else // if (xyz == Z)
     {
-        if (i<0) return z_pos[0];
-        else if (i>z_pos[z_pos.size()-1]) return z_pos[z_pos.size()-1];
+        if (i<0) return z_pos[0]+double(i)*(z_pos[1]-z_pos[0]);
+        else if (i>int(z_pos.size())-1) return z_pos[z_pos.size()-1]+double(i)*(z_pos[z_pos.size()-1]-z_pos[z_pos.size()-2]);
         else return z_pos[i];
     }
 }
@@ -283,13 +283,13 @@ double Interpolator3D::get_clamped_pos (XYZ xyz, int i)
 double Interpolator3D::safe_get_data_point (int i, int j, int k) // ints by design, these are intended to be <0 sometimes, may need to be made long int but realistically not
 {
     if (i<0) { i = 0; }
-    else if (i>x_pos.size()-1) { i = x_pos.size()-1; }
+    else if (i>int(x_pos.size()-1)) { i = x_pos.size()-1; }
 
     if (j<0) { j = 0; }
-    else if (j>y_pos.size()-1) { j = y_pos.size()-1; }
+    else if (j>int(y_pos.size()-1)) { j = y_pos.size()-1; }
 
     if (k<0) { k = 0; }
-    else if (k>z_pos.size()-1) { k = z_pos.size()-1; }
+    else if (k>int(z_pos.size()-1)) { k = z_pos.size()-1; }
 
     return data_array[i][j][k];
 }
@@ -355,16 +355,9 @@ double Interpolator3D::tricubic_interpolate (double p[4][4][4], double x, double
 }
 
 
-double Interpolator3D::unicubic_interpolate_nonreg (double p[4], double t_z[4], double z)
+double Interpolator3D::unicubic_interpolate_nonreg (double p[4], double t[4], double z)
 {
-    double t[4] = {t_z[0], t_z[1], t_z[2], t_z[3]};
-
-    t[0] = (t[0]-t[1])/(t[2]-t[1]);
-    t[3] = (t[3]-t[1])/(t[2]-t[1]);
-    t[1] = 0.0;
-    t[2] = 1.0;
-
-	return p[1] + z*(p[2]-p[0])/(t[2]-t[0]) + z*z*(-3.0*p[1]+3.0*p[2]-2.0*(p[2]-p[0])/(t[2]-t[0])-(p[3]-p[1])/(t[3]-t[1])) + z*z*z*(2.0*p[1]-2.0*p[2]+(p[2]-p[0])/(t[2]-t[0])+(p[3]-p[1])/(t[3]-t[1]));
+    return p[1] + z*(p[2]-p[0])/(t[2]-t[0]) + z*z*(-3.0*p[1]+3.0*p[2]-2.0*(p[2]-p[0])/(t[2]-t[0])-(p[3]-p[1])/(t[3]-t[1])) + z*z*z*(2.0*p[1]-2.0*p[2]+(p[2]-p[0])/(t[2]-t[0])+(p[3]-p[1])/(t[3]-t[1]));
 }
 
 
@@ -389,8 +382,8 @@ double Interpolator3D::tricubic_interpolate_nonreg (double p[4][4][4], double t_
 	bicubic_result[1] = bicubic_interpolate_nonreg(p[1], t_y, t_z, y, z);
 	bicubic_result[2] = bicubic_interpolate_nonreg(p[2], t_y, t_z, y, z);
 	bicubic_result[3] = bicubic_interpolate_nonreg(p[3], t_y, t_z, y, z);
-    
-	return unicubic_interpolate_nonreg(bicubic_result, t_x, x);
+
+    return unicubic_interpolate_nonreg(bicubic_result, t_x, x);
 }
 
 
@@ -421,56 +414,6 @@ double Interpolator3D::bicubic_unilinear_get_value (double x, double y, double z
     double bicubic_result_1 = bicubic_interpolate(p_z_1,x,y);
 
     return bicubic_result_0+z*(bicubic_result_1-bicubic_result_0);
-}
-
-
-void Interpolator3D::setup_gsl_interp()
-{
-    gsl_3d.spline_1d = gsl_spline_alloc(gsl_3d.UNICUBIC,4);
-    gsl_3d.spline_2d = gsl_spline2d_alloc(gsl_3d.BICUBIC,4,4);
-
-    gsl_3d.x_acc = gsl_interp_accel_alloc();
-    gsl_3d.y_acc = gsl_interp_accel_alloc();
-    gsl_3d.z_acc = gsl_interp_accel_alloc();
-}
-
-
-void Interpolator3D::init_gsl_interp (int i_0, int j_0, int k_0)
-{
-    for (int i=i_0-1; i<i_0+3; i++)
-    {
-        gsl_3d.x_pos[i+1] = get_clamped_pos(X,i+i_0);
-        gsl_3d.y_pos[i+1] = get_clamped_pos(Y,i+j_0);
-    }
-
-    for (int i=0; i<4; i++)
-    {
-        for (int j=0; j<4; j++)
-        {
-            gsl_3d.xy_array[i+4*j] = safe_get_data_point(i,j,k_0);
-            std::cout << i << " " << j << " " << safe_get_data_point(i,j,k_0) << std::endl;
-        }
-    }
-
-    gsl_spline2d_init(gsl_3d.spline_2d,gsl_3d.x_pos,gsl_3d.y_pos,gsl_3d.xy_array,4,4);
-}
-
-
-double Interpolator3D::tricubic_gsl_get_value (double x, double y, double z)
-{
-    std::vector<int> indices_vec = find_indices_of_closest_smaller_data_point(x,y,z);
-
-    int i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
-
-    for (int k=0; k<4; k++)
-    {
-        init_gsl_interp(i_0,j_0,k_0);
-        gsl_3d.z_array[k] = gsl_spline2d_eval(gsl_3d.spline_2d,x,y,gsl_3d.x_acc,gsl_3d.y_acc);
-    }
-
-    double ret = gsl_spline_eval(gsl_3d.spline_1d,z,gsl_3d.z_acc);
-
-    return ret;
 }
 
 
@@ -510,8 +453,6 @@ double Interpolator3D::tricubic_get_value_nonreg (double x, double y, double z)
 
     int i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
 
-    double x_0(x_pos[i_0]), x_1(x_pos[i_0+1]), y_0(y_pos[j_0]), y_1(y_pos[j_0+1]), z_0(z_pos[k_0]), z_1(z_pos[k_0+1]);
-
     double p[4][4][4];
     for (int i=0; i<=3; i++)
     {
@@ -524,11 +465,37 @@ double Interpolator3D::tricubic_get_value_nonreg (double x, double y, double z)
         }
     }
 
-    x = (x-x_0)/(x_1-x_0);
-    y = (y-y_0)/(y_1-y_0);
-    z = (z-z_0)/(z_1-z_0);
+    double t_x[4];
+    double t_y[4];
+    double t_z[4];
+    for (int i=0; i<4; i++)
+    {
+        t_x[i] = safe_get_pos(X,i+i_0-1);
+        t_y[i] = safe_get_pos(Y,i+j_0-1);
+        t_z[i] = safe_get_pos(Z,i+k_0-1);
+//std::cout << "\n" << i << " " << t_x[i] << " " << t_y[i] << " " << t_z[i] << std::endl; // TODO remove this
+    }
 
-    double tricubic_result = tricubic_interpolate_nonreg(p,x,y,z);
+    x = (x-t_x[1])/(t_x[2]-t_x[1]);
+    y = (y-t_y[1])/(t_y[2]-t_y[1]);
+    z = (z-t_z[1])/(t_z[2]-t_z[1]);
+
+    t_x[0] = (t_x[0]-t_x[1])/(t_x[2]-t_x[1]);
+    t_x[3] = (t_x[3]-t_x[1])/(t_x[2]-t_x[1]);
+    t_x[1] = 0.0;
+    t_x[2] = 1.0;
+
+    t_y[0] = (t_y[0]-t_y[1])/(t_y[2]-t_y[1]);
+    t_y[3] = (t_y[3]-t_y[1])/(t_y[2]-t_y[1]);
+    t_y[1] = 0.0;
+    t_y[2] = 1.0;
+
+    t_z[0] = (t_z[0]-t_z[1])/(t_z[2]-t_z[1]);
+    t_z[3] = (t_z[3]-t_z[1])/(t_z[2]-t_z[1]);
+    t_z[1] = 0.0;
+    t_z[2] = 1.0;
+
+    double tricubic_result = tricubic_interpolate_nonreg(p,t_x,t_y,t_z,x,y,z);
 
     return tricubic_result;
 }

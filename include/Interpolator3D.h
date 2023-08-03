@@ -67,7 +67,7 @@ public:
 
     GSL3DInterpolationConfig gsl_3d;
 
-    double get_clamped_pos(XYZ xyz, int i);
+    double safe_get_pos(XYZ xyz, int i);
 
     void set_grid(DataGenerationConfig& config);
 
