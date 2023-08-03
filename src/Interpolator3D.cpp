@@ -18,7 +18,7 @@ double Interpolator3D::pos_of_grid_point (XYZ xyz, luint index, DataGenerationCo
     else if (xyz == Y) { grid_spacing = config.y_grid_spacing; n = config.n_y; min = config.y_min; max = config.y_max; }
     else if (xyz == Z) { grid_spacing = config.z_grid_spacing; n = config.n_z; min = config.z_min; max = config.z_max; }
 
-    // log only really makes sense for values > 0
+    // log only really makes sense for values >=0
     if (grid_spacing == "linear")
     {
         return min+(max-min)*(double(index))/(double(n-1));
@@ -218,8 +218,6 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), D
 
 std::vector<int> Interpolator3D::find_indices_of_closest_smaller_data_point (double x, double y, double z)
 {
-    // TODO figure out how to deal with known data_array point hit or if this special case needs to be handled at all
-
     // finding corners of cuboid which x,y,z is inside of
     luint i_0(x_pos.size()-1), j_0(y_pos.size()-1), k_0(z_pos.size()-1);
     for (luint i=0; i<x_pos.size()-1; i++)
@@ -295,159 +293,39 @@ double Interpolator3D::safe_get_data_point (int i, int j, int k) // ints by desi
 }
 
 
-double Interpolator3D::trilinear_get_value (double x, double y, double z)
-{
-    std::vector<int> indices_vec = find_indices_of_closest_smaller_data_point(x,y,z);
-
-    luint i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
-
-    double x_0(x_pos[i_0]), x_1(x_pos[i_0+1]), y_0(y_pos[j_0]), y_1(y_pos[j_0+1]), z_0(z_pos[k_0]), z_1(z_pos[k_0+1]);
-
-    // slopes
-    double dx = (x-x_0)/(x_1-x_0);
-    double dy = (y-y_0)/(y_1-y_0);
-    double dz = (z-z_0)/(z_1-z_0);
-
-    // interpolating along x
-    double c_00 = safe_get_data_point(i_0,j_0,k_0) * (1.0-dx) + safe_get_data_point(i_0+1,j_0,k_0) * dx;
-    double c_01 = safe_get_data_point(i_0,j_0,k_0+1) * (1.0-dx) + safe_get_data_point(i_0+1,j_0,k_0+1) * dx;
-    double c_10 = safe_get_data_point(i_0,j_0+1,k_0) * (1.0-dx) + safe_get_data_point(i_0+1,j_0+1,k_0) * dx;
-    double c_11 = safe_get_data_point(i_0,j_0+1,k_0+1) * (1.0-dx) + safe_get_data_point(i_0+1,j_0+1,k_0+1) * dx;
-
-    // interpolating along y
-    double c_0 = c_00 * (1.0-dy) + c_10 * dy;
-    double c_1 = c_01 * (1.0-dy) + c_11 * dy;
-
-    // interpolating along z, this is the interpolated value
-    return c_0 * (1.0-dz) + c_1 * dz;
-}
-
-
-double Interpolator3D::unicubic_interpolate (double p[4], double z)
-{
-	return p[1] + 0.5 * z*(p[2] - p[0] + z*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + z*(3.0*(p[1] - p[2]) + p[3] - p[0])));
-}
-
-
-double Interpolator3D::bicubic_interpolate (double p[4][4], double y, double z)
-{
-	double unicubic_result[4];
-
-	unicubic_result[0] = unicubic_interpolate(p[0], z);
-	unicubic_result[1] = unicubic_interpolate(p[1], z);
-	unicubic_result[2] = unicubic_interpolate(p[2], z);
-	unicubic_result[3] = unicubic_interpolate(p[3], z);
-
-	return unicubic_interpolate(unicubic_result, y);
-}
-
-
-double Interpolator3D::tricubic_interpolate (double p[4][4][4], double x, double y, double z)
-{
-	double bicubic_result[4];
-
-	bicubic_result[0] = bicubic_interpolate(p[0], y, z);
-	bicubic_result[1] = bicubic_interpolate(p[1], y, z);
-	bicubic_result[2] = bicubic_interpolate(p[2], y, z);
-	bicubic_result[3] = bicubic_interpolate(p[3], y, z);
-    
-	return unicubic_interpolate(bicubic_result, x);
-}
-
-
-double Interpolator3D::unicubic_interpolate_nonreg (double p[4], double t[4], double z)
+double Interpolator3D::unicubic_interpolate (double p[4], double t[4], double z)
 {
     return p[1] + z*(p[2]-p[0])/(t[2]-t[0]) + z*z*(-3.0*p[1]+3.0*p[2]-2.0*(p[2]-p[0])/(t[2]-t[0])-(p[3]-p[1])/(t[3]-t[1])) + z*z*z*(2.0*p[1]-2.0*p[2]+(p[2]-p[0])/(t[2]-t[0])+(p[3]-p[1])/(t[3]-t[1]));
 }
 
 
-double Interpolator3D::bicubic_interpolate_nonreg (double p[4][4], double t_y[4], double t_z[4], double y, double z)
+double Interpolator3D::bicubic_interpolate (double p[4][4], double t_y[4], double t_z[4], double y, double z)
 {
 	double unicubic_result[4];
 
-	unicubic_result[0] = unicubic_interpolate_nonreg(p[0], t_z, z);
-	unicubic_result[1] = unicubic_interpolate_nonreg(p[1], t_z, z);
-	unicubic_result[2] = unicubic_interpolate_nonreg(p[2], t_z, z);
-	unicubic_result[3] = unicubic_interpolate_nonreg(p[3], t_z, z);
+	unicubic_result[0] = unicubic_interpolate(p[0], t_z, z);
+	unicubic_result[1] = unicubic_interpolate(p[1], t_z, z);
+	unicubic_result[2] = unicubic_interpolate(p[2], t_z, z);
+	unicubic_result[3] = unicubic_interpolate(p[3], t_z, z);
 
-	return unicubic_interpolate_nonreg(unicubic_result, t_y, y);
+	return unicubic_interpolate(unicubic_result, t_y, y);
 }
 
 
-double Interpolator3D::tricubic_interpolate_nonreg (double p[4][4][4], double t_x[4], double t_y[4], double t_z[4], double x, double y, double z)
+double Interpolator3D::tricubic_interpolate (double p[4][4][4], double t_x[4], double t_y[4], double t_z[4], double x, double y, double z)
 {
 	double bicubic_result[4];
 
-	bicubic_result[0] = bicubic_interpolate_nonreg(p[0], t_y, t_z, y, z);
-	bicubic_result[1] = bicubic_interpolate_nonreg(p[1], t_y, t_z, y, z);
-	bicubic_result[2] = bicubic_interpolate_nonreg(p[2], t_y, t_z, y, z);
-	bicubic_result[3] = bicubic_interpolate_nonreg(p[3], t_y, t_z, y, z);
+	bicubic_result[0] = bicubic_interpolate(p[0], t_y, t_z, y, z);
+	bicubic_result[1] = bicubic_interpolate(p[1], t_y, t_z, y, z);
+	bicubic_result[2] = bicubic_interpolate(p[2], t_y, t_z, y, z);
+	bicubic_result[3] = bicubic_interpolate(p[3], t_y, t_z, y, z);
 
-    return unicubic_interpolate_nonreg(bicubic_result, t_x, x);
-}
-
-
-double Interpolator3D::bicubic_unilinear_get_value (double x, double y, double z)
-{
-    std::vector<int> indices_vec = find_indices_of_closest_smaller_data_point(x,y,z);
-
-    luint i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
-
-    double x_0(x_pos[i_0]), x_1(x_pos[i_0+1]), y_0(y_pos[j_0]), y_1(y_pos[j_0+1]), z_0(z_pos[k_0]), z_1(z_pos[k_0+1]);
-
-    double p_z_0[4][4];
-    double p_z_1[4][4];
-    for (int i=0; i<=3; i++)
-    {
-        for (int j=0; j<=3; j++)
-        {
-            p_z_0[i][j] = safe_get_data_point(i_0+i-1,j_0+j-1,k_0);
-            p_z_1[i][j] = safe_get_data_point(i_0+i-1,j_0+j-1,k_0+1);
-        }
-    }
-
-    x = (x-x_0)/(x_1-x_0);
-    y = (y-y_0)/(y_1-y_0);
-    z = (z-z_0)/(z_1-z_0);
-
-    double bicubic_result_0 = bicubic_interpolate(p_z_0,x,y);
-    double bicubic_result_1 = bicubic_interpolate(p_z_1,x,y);
-
-    return bicubic_result_0+z*(bicubic_result_1-bicubic_result_0);
+    return unicubic_interpolate(bicubic_result, t_x, x);
 }
 
 
 double Interpolator3D::tricubic_get_value (double x, double y, double z)
-{
-    std::vector<int> indices_vec = find_indices_of_closest_smaller_data_point(x,y,z);
-
-    luint i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
-
-    double x_0(x_pos[i_0]), x_1(x_pos[i_0+1]), y_0(y_pos[j_0]), y_1(y_pos[j_0+1]), z_0(z_pos[k_0]), z_1(z_pos[k_0+1]);
-
-    double p[4][4][4];
-    for (int i=0; i<=3; i++)
-    {
-        for (int j=0; j<=3; j++)
-        {
-            for (int k=0; k<=3; k++)
-            {
-                p[i][j][k] = safe_get_data_point(i+i_0-1,j+j_0-1,k+k_0-1);
-            }
-        }
-    }
-
-    x = (x-x_0)/(x_1-x_0);
-    y = (y-y_0)/(y_1-y_0);
-    z = (z-z_0)/(z_1-z_0);
-
-    double tricubic_result = tricubic_interpolate(p,x,y,z);
-
-    return tricubic_result;
-}
-
-
-double Interpolator3D::tricubic_get_value_nonreg (double x, double y, double z)
 {
     std::vector<int> indices_vec = find_indices_of_closest_smaller_data_point(x,y,z);
 
@@ -468,12 +346,12 @@ double Interpolator3D::tricubic_get_value_nonreg (double x, double y, double z)
     double t_x[4];
     double t_y[4];
     double t_z[4];
+
     for (int i=0; i<4; i++)
     {
         t_x[i] = safe_get_pos(X,i+i_0-1);
         t_y[i] = safe_get_pos(Y,i+j_0-1);
         t_z[i] = safe_get_pos(Z,i+k_0-1);
-//std::cout << "\n" << i << " " << t_x[i] << " " << t_y[i] << " " << t_z[i] << std::endl; // TODO remove this
     }
 
     x = (x-t_x[1])/(t_x[2]-t_x[1]);
@@ -495,7 +373,7 @@ double Interpolator3D::tricubic_get_value_nonreg (double x, double y, double z)
     t_z[1] = 0.0;
     t_z[2] = 1.0;
 
-    double tricubic_result = tricubic_interpolate_nonreg(p,t_x,t_y,t_z,x,y,z);
+    double tricubic_result = tricubic_interpolate(p,t_x,t_y,t_z,x,y,z);
 
     return tricubic_result;
 }
