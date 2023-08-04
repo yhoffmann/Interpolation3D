@@ -8,14 +8,13 @@
 
 typedef long unsigned int luint;
 
+typedef std::vector<std::vector<std::vector<double>>> vec_3d;
+
 
 enum XYZ
 {
     X, Y, Z
 };
-
-
-typedef std::vector<std::vector<std::vector<double>>> vec_3d;
 
 
 struct DataGenerationConfig
@@ -43,7 +42,7 @@ public:
 
     double pos_of_grid_point(XYZ xyz, luint index, DataGenerationConfig& config);
 
-    std::vector<int> find_indices_of_closest_smaller_data_point(double x, double y, double z);
+    std::vector<int> find_indices_of_closest_lower_data_point(double x, double y, double z);
 
 
 public:
