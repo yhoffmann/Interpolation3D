@@ -214,33 +214,35 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), D
 }
 
 
-std::vector<int> Interpolator3D::find_indices_of_closest_smaller_data_point (double x, double y, double z)
+std::vector<int> Interpolator3D::find_indices_of_closest_lower_data_point (double x, double y, double z)
 {
-    // finding corners of cuboid which x,y,z is inside of
-    luint i_0(x_pos.size()-1), j_0(y_pos.size()-1), k_0(z_pos.size()-1);
-    for (luint i=0; i<x_pos.size()-1; i++)
+    int i_0(0), j_0(0), k_0(0);
+    int i_sign(1), j_sign(1), k_sign(1);
+    
+    if (x<x_pos[0])
     {
-        if (x_pos[i+1] > x)
-        {
-            i_0 = i;
-            break;
-        }
+        i_sign = -1;
     }
-    for (luint j=0; j<y_pos.size()-1; j++)
+    if (y<y_pos[0])
     {
-        if (y_pos[j+1] > y)
-        {
-            j_0 = j;
-            break;
-        }
+        j_sign = -1;
     }
-    for (luint k=0; k<z_pos.size()-1; k++)
+    if (z<z_pos[0])
     {
-        if (z_pos[k+1] > z)
-        {
-            k_0 = k;
-            break;
-        }
+        k_sign = -1;
+    }
+    
+    while (i_sign*x>i_sign*safe_get_pos(X,i_0+i_sign))
+    {
+        i_0 += i_sign;
+    }
+    while (j_sign*y>j_sign*safe_get_pos(Y,j_0+j_sign))
+    {
+        j_0 += j_sign;
+    }
+    while (k_sign*z>k_sign*safe_get_pos(Z,k_0+k_sign))
+    {
+        k_0 += k_sign;
     }
 
     std::vector<int> ret;
@@ -258,19 +260,19 @@ double Interpolator3D::safe_get_pos (XYZ xyz, int i)
     if (xyz == X)
     {
         if (i<0) return x_pos[0]+double(i)*(x_pos[1]-x_pos[0]);
-        else if (i>int(x_pos.size())-1) return x_pos[x_pos.size()-1]+double(i)*(x_pos[x_pos.size()-1]-x_pos[x_pos.size()-2]);
+        else if (i>int(x_pos.size())-1) return x_pos[x_pos.size()-1]+double(i-int(x_pos.size())+1)*(x_pos[x_pos.size()-1]-x_pos[x_pos.size()-2]);
         else return x_pos[i];
     }
     if (xyz == Y)
     {
         if (i<0) return y_pos[0]+double(i)*(y_pos[1]-y_pos[0]);
-        else if (i>int(y_pos.size())-1) return y_pos[y_pos.size()-1]+double(i)*(y_pos[y_pos.size()-1]-y_pos[y_pos.size()-2]);
+        else if (i>int(y_pos.size())-1) return y_pos[y_pos.size()-1]+double(i-int(y_pos.size())+1)*(y_pos[y_pos.size()-1]-y_pos[y_pos.size()-2]);
         else return y_pos[i];
     }
     else // if (xyz == Z)
     {
         if (i<0) return z_pos[0]+double(i)*(z_pos[1]-z_pos[0]);
-        else if (i>int(z_pos.size())-1) return z_pos[z_pos.size()-1]+double(i)*(z_pos[z_pos.size()-1]-z_pos[z_pos.size()-2]);
+        else if (i>int(z_pos.size())-1) return z_pos[z_pos.size()-1]+double(i-int(z_pos.size())+1)*(z_pos[z_pos.size()-1]-z_pos[z_pos.size()-2]);
         else return z_pos[i];
     }
 }
@@ -325,7 +327,7 @@ double Interpolator3D::tricubic_interpolate (double p[4][4][4], double t_x[4], d
 
 double Interpolator3D::tricubic_get_value (double x, double y, double z)
 {
-    std::vector<int> indices_vec = find_indices_of_closest_smaller_data_point(x,y,z);
+    std::vector<int> indices_vec = find_indices_of_closest_lower_data_point(x,y,z);
 
     int i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
 
