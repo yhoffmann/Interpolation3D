@@ -105,11 +105,11 @@ void Interpolator3D::export_data (std::string filepath)
     // printing n_x, n_y, n_z into the first line
     out << "#N " << x_pos.size() << " " << y_pos.size() << " " << z_pos.size() << std::endl;
 
-    for (luint i=0; i<x_pos.size()-1; i++)
+    for (luint i=0; i<x_pos.size(); i++)
     {
-        for (luint j=0; j<y_pos.size()-1; j++)
+        for (luint j=0; j<y_pos.size(); j++)
         {
-            for (luint k=0; k<z_pos.size()-1; k++)
+            for (luint k=0; k<z_pos.size(); k++)
             {
                 out << std::setprecision(10) << i << " " << j << " " << k << " " << x_pos[i] << " " << y_pos[j] << " " << z_pos[k] << " " << data_array[i][j][k] << std::endl;
             }
@@ -176,8 +176,6 @@ void Interpolator3D::import_data (std::string filepath)
             z_pos[k] = std::stod(line_vec[5]);
 
             data_array[i][j][k] = std::stod(line_vec[6]);
-
-            line_vec.clear();
         }
     }
     in.close();
