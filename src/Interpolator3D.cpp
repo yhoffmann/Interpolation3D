@@ -232,19 +232,19 @@ std::vector<int> Interpolator3D::find_indices_of_closest_lower_data_point (doubl
         k_sign = -1;
     }
     
-    while (i_sign*x>i_sign*safe_get_pos(X,i_0+i_sign))
+    while (i_sign*x>i_sign*safe_get_pos(X,i_0+bool(i_sign+1)))
     {
         i_0 += i_sign;
     }
-    while (j_sign*y>j_sign*safe_get_pos(Y,j_0+j_sign))
+    while (j_sign*y>j_sign*safe_get_pos(Y,j_0+bool(j_sign+1)))
     {
         j_0 += j_sign;
     }
-    while (k_sign*z>k_sign*safe_get_pos(Z,k_0+k_sign))
+    while (k_sign*z>k_sign*safe_get_pos(Z,k_0+bool(k_sign+1)))
     {
         k_0 += k_sign;
     }
-
+    
     std::vector<int> ret;
 
     ret.push_back(i_0);
@@ -332,11 +332,11 @@ double Interpolator3D::tricubic_get_value (double x, double y, double z)
     int i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
 
     double p[4][4][4];
-    for (int i=0; i<=3; i++)
+    for (int i=0; i<4; i++)
     {
-        for (int j=0; j<=3; j++)
+        for (int j=0; j<4; j++)
         {
-            for (int k=0; k<=3; k++)
+            for (int k=0; k<4; k++)
             {
                 p[i][j][k] = safe_get_data_point(i+i_0-1,j+j_0-1,k+k_0-1);
             }
