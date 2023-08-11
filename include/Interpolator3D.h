@@ -6,8 +6,6 @@
 #include <string>
 
 
-typedef long unsigned int luint;
-
 typedef std::vector<std::vector<std::vector<double>>> vec_3d;
 
 
@@ -25,9 +23,9 @@ struct IndicesVec
 
 struct DataGenerationConfig
 {
-    luint n_x; double x_min; double x_max; std::string x_grid_spacing = "linear";
-    luint n_y; double y_min; double y_max; std::string y_grid_spacing = "linear";
-    luint n_z; double z_min; double z_max; std::string z_grid_spacing = "linear";
+    int n_x; double x_min; double x_max; std::string x_grid_spacing = "linear";
+    int n_y; double y_min; double y_max; std::string y_grid_spacing = "linear";
+    int n_z; double z_min; double z_max; std::string z_grid_spacing = "linear";
 };
 
 
@@ -40,13 +38,21 @@ public:
     std::vector<double> y_pos;
     std::vector<double> z_pos;
 
-    double safe_get_pos(XYZ xyz, int i);
+    unsigned int n_x;
+    unsigned int n_y;
+    unsigned int n_z;
+
+    double safe_get_x_pos(int i);
+
+    double safe_get_y_pos(int i);
+
+    double safe_get_z_pos(int i);
 
     void set_grid(DataGenerationConfig& config);
 
     void prepare_data_array();
 
-    double pos_of_grid_point(XYZ xyz, luint index, DataGenerationConfig& config);
+    double pos_of_grid_point(XYZ xyz, int index, DataGenerationConfig& config);
 
     IndicesVec find_indices_of_closest_lower_data_point(double x, double y, double z);
 

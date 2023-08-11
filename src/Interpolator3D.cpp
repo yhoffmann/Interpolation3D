@@ -6,10 +6,10 @@
 #include <sstream>
 #include <iomanip>
 
-double Interpolator3D::pos_of_grid_point (XYZ xyz, luint index, DataGenerationConfig& config)
+double Interpolator3D::pos_of_grid_point (XYZ xyz, int index, DataGenerationConfig& config)
 {
     std::string grid_spacing;
-    luint n(0);
+    int n(0);
     double min(0), max(0);
 
     if (xyz == X) { grid_spacing = config.x_grid_spacing; n = config.n_x; min = config.x_min; max = config.x_max; }
@@ -43,24 +43,24 @@ double Interpolator3D::pos_of_grid_point (XYZ xyz, luint index, DataGenerationCo
 
 void Interpolator3D::set_grid (DataGenerationConfig& config)
 {
-    luint n_x = config.n_x;
-    luint n_y = config.n_y;
-    luint n_z = config.n_z;
+    n_x = config.n_x;
+    n_y = config.n_y;
+    n_z = config.n_z;
     
     // initializing 3d vector and resizing it to size n_x,n_y,n_z
     x_pos.resize(n_x);
     y_pos.resize(n_y);
     z_pos.resize(n_z);
 
-    for (luint i=0; i<n_x; i++)
+    for (unsigned int i=0; i<n_x; i++)
     {
         x_pos[i] = pos_of_grid_point(X,i,config);
     }
-    for (luint j=0; j<n_y; j++)
+    for (unsigned int j=0; j<n_y; j++)
     {
         y_pos[j] = pos_of_grid_point(Y,j,config);
     }
-    for (luint k=0; k<n_z; k++)
+    for (unsigned int k=0; k<n_z; k++)
     {
         z_pos[k] = pos_of_grid_point(Z,k,config);
     }
@@ -79,16 +79,16 @@ void Interpolator3D::prepare_data_array()
     }
     data_array.clear();
 
-    data_array.resize(x_pos.size());
-    for (luint i=0; i<x_pos.size(); i++)
+    data_array.resize(n_x);
+    for (unsigned int i=0; i<n_x; i++)
     {
-       data_array[i].resize(y_pos.size());
+       data_array[i].resize(n_y);
     }
-    for (luint i=0; i<x_pos.size(); i++)
+    for (unsigned int i=0; i<n_x; i++)
     {
-        for (luint j=0; j<y_pos.size(); j++)
+        for (unsigned int j=0; j<n_y; j++)
         {
-            data_array[i][j].resize(z_pos.size());
+            data_array[i][j].resize(n_z);
         }
     }
 }
@@ -103,13 +103,13 @@ void Interpolator3D::export_data (std::string filepath)
     if (!out.is_open()) { std::cerr << "Could not open given file. Aborting" << std::endl; exit(0); }
 
     // printing n_x, n_y, n_z into the first line
-    out << "#N " << x_pos.size() << " " << y_pos.size() << " " << z_pos.size() << std::endl;
+    out << "#N " << n_x << " " << n_y << " " << n_z << std::endl;
 
-    for (luint i=0; i<x_pos.size(); i++)
+    for (unsigned int i=0; i<n_x; i++)
     {
-        for (luint j=0; j<y_pos.size(); j++)
+        for (unsigned int j=0; j<n_y; j++)
         {
-            for (luint k=0; k<z_pos.size(); k++)
+            for (unsigned int k=0; k<n_z; k++)
             {
                 out << std::setprecision(10) << i << " " << j << " " << k << " " << x_pos[i] << " " << y_pos[j] << " " << z_pos[k] << " " << data_array[i][j][k] << std::endl;
             }
@@ -145,16 +145,16 @@ void Interpolator3D::import_data (std::string filepath)
     }
     if (line_vec[0] != "#N") { std::cerr << "Wrong data_array format, use generate_data() to generate data_array in the desired format. Aborting!" << std::endl; exit(0); }
 
-    luint n_x = std::stoi(line_vec[1]);
-    luint n_y = std::stoi(line_vec[2]);
-    luint n_z = std::stoi(line_vec[3]);
+    int n_x = std::stoi(line_vec[1]);
+    int n_y = std::stoi(line_vec[2]);
+    int n_z = std::stoi(line_vec[3]);
     x_pos.resize(n_x);
     y_pos.resize(n_y);
     z_pos.resize(n_z);
 
     prepare_data_array();
 
-    luint i,j,k;
+    int i,j,k;
     while(std::getline(in, line))
     {
         if (line != "")
@@ -185,21 +185,17 @@ void Interpolator3D::import_data (std::string filepath)
 
 
 void Interpolator3D::generate_data (double func(double x, double y, double z), DataGenerationConfig& config, bool progress_monitor)
-{
-    luint n_x = config.n_x;
-    luint n_y = config.n_y;
-    luint n_z = config.n_z;
-    
+{    
     set_grid(config);
     prepare_data_array();
 
     // filling data_array with function values
     #pragma omp parallel for
-    for (luint i=0; i<n_x; i++)
+    for (unsigned int i=0; i<n_x; i++)
     {
-        for (luint j=0; j<n_y; j++)
+        for (unsigned int j=0; j<n_y; j++)
         {
-            for (luint k=0; k<n_z; k++)
+            for (unsigned int k=0; k<n_z; k++)
             {
                 data_array[i][j][k] = func(x_pos[i],y_pos[j],z_pos[k]);
             }
@@ -230,15 +226,15 @@ IndicesVec Interpolator3D::find_indices_of_closest_lower_data_point (double x, d
         k_sign = -1;
     }
     
-    while (i_sign*x>i_sign*safe_get_pos(X,i_0+bool(i_sign+1)))
+    while (i_sign*x>i_sign*safe_get_x_pos(i_0+bool(i_sign+1)))
     {
         i_0 += i_sign;
     }
-    while (j_sign*y>j_sign*safe_get_pos(Y,j_0+bool(j_sign+1)))
+    while (j_sign*y>j_sign*safe_get_y_pos(j_0+bool(j_sign+1)))
     {
         j_0 += j_sign;
     }
-    while (k_sign*z>k_sign*safe_get_pos(Z,k_0+bool(k_sign+1)))
+    while (k_sign*z>k_sign*safe_get_z_pos(k_0+bool(k_sign+1)))
     {
         k_0 += k_sign;
     }
@@ -253,41 +249,42 @@ IndicesVec Interpolator3D::find_indices_of_closest_lower_data_point (double x, d
 }
 
 
-double Interpolator3D::safe_get_pos (XYZ xyz, int i)
+double Interpolator3D::safe_get_x_pos (int i)
 {
-    if (xyz == X)
-    {
-        if (i<0) return x_pos[0]+double(i)*(x_pos[1]-x_pos[0]);
-        else if (i>int(x_pos.size())-1) return x_pos[x_pos.size()-1]+double(i-int(x_pos.size())+1)*(x_pos[x_pos.size()-1]-x_pos[x_pos.size()-2]);
-        else return x_pos[i];
-    }
-    if (xyz == Y)
-    {
-        if (i<0) return y_pos[0]+double(i)*(y_pos[1]-y_pos[0]);
-        else if (i>int(y_pos.size())-1) return y_pos[y_pos.size()-1]+double(i-int(y_pos.size())+1)*(y_pos[y_pos.size()-1]-y_pos[y_pos.size()-2]);
-        else return y_pos[i];
-    }
-    else // if (xyz == Z)
-    {
-        if (i<0) return z_pos[0]+double(i)*(z_pos[1]-z_pos[0]);
-        else if (i>int(z_pos.size())-1) return z_pos[z_pos.size()-1]+double(i-int(z_pos.size())+1)*(z_pos[z_pos.size()-1]-z_pos[z_pos.size()-2]);
-        else return z_pos[i];
-    }
+    if (i<0) return x_pos[0]+double(i);
+    else if (i>int(n_x-1)) return x_pos[n_x-(unsigned int)1]+double(i-int(n_x+1));
+    else return x_pos[(unsigned int)i];
 }
 
 
-double Interpolator3D::safe_get_data_point (int i, int j, int k) // ints by design, these are intended to be <0 sometimes, may need to be made long int but realistically not
+double Interpolator3D::safe_get_y_pos (int i)
+{
+    if (i<0) return y_pos[0]+double(i)*1.0;
+    else if (i>int(n_y-1)) return y_pos[n_y-(unsigned int)1]+double(i-int(n_y+1));
+    else return y_pos[(unsigned int)i];
+}
+
+
+double Interpolator3D::safe_get_z_pos (int i)
+{
+    if (i<0) return z_pos[0]+double(i)*1.0;
+    else if (i>int(n_z-1)) return z_pos[n_z-(unsigned int)1]+double(i-int(n_z+1));
+    else return z_pos[(unsigned int)i];
+}
+
+
+double Interpolator3D::safe_get_data_point (int i, int j, int k)
 {
     if (i<0) { i = 0; }
-    else if (i>int(x_pos.size()-1)) { i = x_pos.size()-1; }
+    else if (i>int(n_x-1)) { i = n_x-1; }
 
     if (j<0) { j = 0; }
-    else if (j>int(y_pos.size()-1)) { j = y_pos.size()-1; }
+    else if (j>int(n_y-1)) { j = n_y-1; }
 
     if (k<0) { k = 0; }
-    else if (k>int(z_pos.size()-1)) { k = z_pos.size()-1; }
+    else if (k>int(n_z-1)) { k = n_z-1; }
 
-    return data_array[i][j][k];
+    return data_array[(unsigned int)i][(unsigned int)j][(unsigned int)k];
 }
 
 
@@ -327,8 +324,6 @@ double Interpolator3D::tricubic_get_value (double x, double y, double z)
 {
     IndicesVec indices_vec = find_indices_of_closest_lower_data_point(x,y,z);
 
-    int i_0(indices_vec.i), j_0(indices_vec.j), k_0(indices_vec.k);
-
     double p[4][4][4];
     for (int i=0; i<4; i++)
     {
@@ -336,7 +331,7 @@ double Interpolator3D::tricubic_get_value (double x, double y, double z)
         {
             for (int k=0; k<4; k++)
             {
-                p[i][j][k] = safe_get_data_point(i+i_0-1,j+j_0-1,k+k_0-1);
+                p[i][j][k] = safe_get_data_point(i+indices_vec.i-1,j+indices_vec.j-1,k+indices_vec.k-1);
             }
         }
     }
@@ -347,9 +342,9 @@ double Interpolator3D::tricubic_get_value (double x, double y, double z)
 
     for (int i=0; i<4; i++)
     {
-        t_x[i] = safe_get_pos(X,i+i_0-1);
-        t_y[i] = safe_get_pos(Y,i+j_0-1);
-        t_z[i] = safe_get_pos(Z,i+k_0-1);
+        t_x[i] = safe_get_x_pos(i+indices_vec.i-1);
+        t_y[i] = safe_get_y_pos(i+indices_vec.j-1);
+        t_z[i] = safe_get_z_pos(i+indices_vec.k-1);
     }
 
     x = (x-t_x[1])/(t_x[2]-t_x[1]);
