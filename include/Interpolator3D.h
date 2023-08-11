@@ -17,6 +17,12 @@ enum XYZ
 };
 
 
+struct IndicesVec
+{
+    int i, j, k;
+};
+
+
 struct DataGenerationConfig
 {
     luint n_x; double x_min; double x_max; std::string x_grid_spacing = "linear";
@@ -42,7 +48,7 @@ public:
 
     double pos_of_grid_point(XYZ xyz, luint index, DataGenerationConfig& config);
 
-    std::vector<int> find_indices_of_closest_lower_data_point(double x, double y, double z);
+    IndicesVec find_indices_of_closest_lower_data_point(double x, double y, double z);
 
 
 public:

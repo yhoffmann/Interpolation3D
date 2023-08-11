@@ -212,7 +212,7 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), D
 }
 
 
-std::vector<int> Interpolator3D::find_indices_of_closest_lower_data_point (double x, double y, double z)
+IndicesVec Interpolator3D::find_indices_of_closest_lower_data_point (double x, double y, double z)
 {
     int i_0(0), j_0(0), k_0(0);
     int i_sign(1), j_sign(1), k_sign(1);
@@ -243,13 +243,13 @@ std::vector<int> Interpolator3D::find_indices_of_closest_lower_data_point (doubl
         k_0 += k_sign;
     }
     
-    std::vector<int> ret;
+    IndicesVec indices_vec;
 
-    ret.push_back(i_0);
-    ret.push_back(j_0);
-    ret.push_back(k_0);
+    indices_vec.i = i_0;
+    indices_vec.j = j_0;
+    indices_vec.k = k_0;
 
-    return ret;
+    return indices_vec;
 }
 
 
@@ -325,9 +325,9 @@ double Interpolator3D::tricubic_interpolate (double p[4][4][4], double t_x[4], d
 
 double Interpolator3D::tricubic_get_value (double x, double y, double z)
 {
-    std::vector<int> indices_vec = find_indices_of_closest_lower_data_point(x,y,z);
+    IndicesVec indices_vec = find_indices_of_closest_lower_data_point(x,y,z);
 
-    int i_0(indices_vec[0]), j_0(indices_vec[1]), k_0(indices_vec[2]);
+    int i_0(indices_vec.i), j_0(indices_vec.j), k_0(indices_vec.k);
 
     double p[4][4][4];
     for (int i=0; i<4; i++)
