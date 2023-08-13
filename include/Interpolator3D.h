@@ -2,16 +2,12 @@
 
 
 #include <stdlib.h>
-#include <vector>
 #include <string>
 
 
-typedef std::vector<std::vector<std::vector<double>>> vec_3d;
-
-
-enum XYZ
+enum class Dir
 {
-    X, Y, Z
+    x, y, z
 };
 
 
@@ -33,14 +29,19 @@ class Interpolator3D
 {
 public:
 
-    vec_3d data_array;
-    std::vector<double> x_pos;
-    std::vector<double> y_pos;
-    std::vector<double> z_pos;
+    double* data_array;
 
-    unsigned int n_x;
-    unsigned int n_y;
-    unsigned int n_z;
+    bool data_array_is_prepared = false;
+
+    double* x_pos;
+    double* y_pos;
+    double* z_pos;
+
+    bool grid_is_set = false;
+
+    unsigned int n_x = 0;
+    unsigned int n_y = 0;
+    unsigned int n_z = 0;
 
     double safe_get_x_pos(int i);
 
@@ -48,18 +49,25 @@ public:
 
     double safe_get_z_pos(int i);
 
-    void set_grid(DataGenerationConfig& config);
+private:
+
+    void set_grid(DataGenerationConfig* config);
+
+    void delete_grid();
+
+    void delete_data_array();
 
     void prepare_data_array();
 
-    double pos_of_grid_point(XYZ xyz, int index, DataGenerationConfig& config);
+    uint index(uint i, uint j, uint k);    
+
+    double pos_of_grid_point(Dir dir, int index, DataGenerationConfig* config);
 
     IndicesVec find_indices_of_closest_lower_data_point(double x, double y, double z);
 
-
 public:
 
-    void generate_data(double func(double x, double y, double z), DataGenerationConfig& config, bool progress_monitor);
+    void generate_data(double func(double x, double y, double z), DataGenerationConfig* config, bool progress_monitor);
 
     void export_data(std::string filepath);
 
@@ -73,5 +81,11 @@ public:
 
     double tricubic_interpolate(double p[4][4][4], double t_x[4], double t_y[4], double t_z[4], double x, double y, double z);
 
-    double tricubic_get_value(double x, double y, double z);
+    double get_interp_value_tricubic(double x, double y, double z);
+
+    void setup_gsl_interp();
+
+    double get_interp_value_gsl_tricubic(double x, double y, double z);
+
+    ~Interpolator3D();
 };
