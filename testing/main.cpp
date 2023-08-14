@@ -18,23 +18,23 @@ int main (int argc, char** argv)
 
     DataGenerationConfig conf;
 
-    conf.n_x = 101;
-    conf.n_y = 101;
-    conf.n_z = 101;
+    conf.n_x = 200;
+    conf.n_y = 200;
+    conf.n_z = 140;
 
     //conf.x_grid_spacing = "log";
     //conf.y_grid_spacing = "log";
     //conf.z_grid_spacing = "log";
 
-    conf.x_min = 1.0;
-    conf.y_min = 1.0;
-    conf.z_min = 1.0;
+    conf.x_min = 0.0;
+    conf.y_min = 0.0;
+    conf.z_min = 0.0;
 
-    conf.x_max = 11;
-    conf.y_max = 11;
-    conf.z_max = 11;
+    conf.x_max = 10;
+    conf.y_max = 10;
+    conf.z_max = 10;
 
-    ip.generate_data(f,conf,false);
+    ip.generate_data(f,&conf,false);
     //ip.load_data(filepath);
 /*
     for (int i=0; i<200; i++)
@@ -45,16 +45,20 @@ int main (int argc, char** argv)
     }
 */
 
-    double y = 1.0;
-    double z = 1.0;
-    double x = 1.0;
-    //std::cout << x << " " << f(x,y,z) << " " << ip.tricubic_get_value_nonreg(x,y,z) << std::endl;
-    int imax = 1e8+1;
+    double x = 5.0;
+    double y = 2.158;
+    double z = 1.012;
+    //std::cout << x << " " << f(x,y,z) << "\n" << ip.get_interp_value_tricubic(x,y,z) << std::endl;
+
+    int imax = 1e8+1;  
+    //#pragma omp parallel for
     for (int i=0; i<imax; i++)
     {
-        double x = 5.0*double(i)/double(imax-1);
-        //std::cout << std::setprecision(10) << x << " " << f(x,y,z) << " " << ip.tricubic_get_value(x,y,z) << std::endl;
-        (void)ip.tricubic_get_value(x,y,z);
+        double x = 10.0*double(i)/double(imax-1)+0.01;
+        double y=x, z=x;
+        //std::cout << std::setprecision(10) << x << " " << f(x,y,z) << " " << ip.get_interp_value_tricubic(x,y,z) << std::endl;
+        (void)ip.get_interp_value_tricubic(x,y,z);
+        //std::cout << "x " << x << std::endl;
     }
 
     //ip.print_data_to_file(filepath);
