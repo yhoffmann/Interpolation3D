@@ -233,6 +233,36 @@ IndicesVec Interpolator3D::find_indices_of_closest_lower_data_point (double x, d
 {
     int i_0(n_x/2), j_0(n_y/2), k_0(n_z/2);
 
+    for (uint i=2; n_x>>i>2; i++)
+    {
+        if (x<x_pos[i_0])
+        {
+            i_0 -= n_x>>i;
+        }
+        else
+        {
+            i_0 += n_x>>i;
+        }
+
+        if (y<y_pos[j_0])
+        {
+            j_0 -= n_y>>i;
+        }
+        else
+        {
+            j_0 += n_y>>i;
+        }
+
+        if (z<z_pos[k_0])
+        {
+            k_0 -= n_z>>i;
+        }
+        else
+        {
+            k_0 += n_z>>i;
+        }
+    }
+
     if (x<x_pos[i_0])
     {
         while (x<safe_get_x_pos(--i_0));
