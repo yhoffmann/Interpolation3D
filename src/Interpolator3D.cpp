@@ -54,13 +54,15 @@ void Interpolator3D::delete_grid()
     delete[] y_pos;
     delete[] z_pos;
 
-    grid_is_set = false;
+    x_pos = nullptr;
+    y_pos = nullptr;
+    z_pos = nullptr;
 }
 
 
 void Interpolator3D::set_grid (DataGenerationConfig* config)
 {
-    if (grid_is_set) delete_grid();
+    if (x_pos) delete_grid();
 
     if (config)
     {
@@ -89,8 +91,6 @@ void Interpolator3D::set_grid (DataGenerationConfig* config)
             z_pos[k] = pos_of_grid_point(Dir::z,k,config);
         }
     }
-
-    grid_is_set = true;
 }
 
 
@@ -98,17 +98,15 @@ void Interpolator3D::delete_data_array()
 {
     delete[] data_array;
 
-    data_array_is_prepared = false;
+    data_array = nullptr;
 }
 
 
 void Interpolator3D::prepare_data_array()
 {
-    if (data_array_is_prepared) delete_data_array();
+    if (data_array) delete_data_array();
 
     data_array = new double [n_x*n_y*n_z];
-
-    data_array_is_prepared = true;
 }
 
 
@@ -171,7 +169,7 @@ void Interpolator3D::import_data (std::string filepath)
     n_y = std::stoi(line_vec[2]);
     n_z = std::stoi(line_vec[3]);
     
-    set_grid(nullptr);  // allocate memory for position arrays but leave the uninitialized
+    set_grid(nullptr);  // allocate memory for position arrays but leave the position vectors uninitialized
 
     prepare_data_array();
 
@@ -223,80 +221,34 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), D
         }
         if (progress_monitor)
         {
-            std::cout << "Progress (value of x finished): " << i << std::endl;
+            std::cout << "Progress (# of y-z planes finished): " << i << std::endl;
         }
     }
 }
 
 
-IndicesVec Interpolator3D::find_indices_of_closest_lower_data_point (double x, double y, double z)
+void Interpolator3D::find_indices_of_closest_lower_data_point (double x, double y, double z, int& i_0, int& j_0, int& k_0)
 {
-    int i_0(n_x/2), j_0(n_y/2), k_0(n_z/2);
-
-    for (uint i=2; n_x>>i>2; i++)
+    for (uint i=2; n_x>>i>2; i++) // having only one for loop was always faster than having 1 each for n_x, n_y, n_z in testing (and results are of course the same)
     {
-        if (x<x_pos[i_0])
-        {
-            i_0 -= n_x>>i;
-        }
-        else
-        {
-            i_0 += n_x>>i;
-        }
+        if (x<x_pos[i_0]) i_0 -= n_x>>i;
+        else i_0 += n_x>>i;
 
-        if (y<y_pos[j_0])
-        {
-            j_0 -= n_y>>i;
-        }
-        else
-        {
-            j_0 += n_y>>i;
-        }
+        if (y<y_pos[j_0]) j_0 -= n_y>>i;
+        else j_0 += n_y>>i;
 
-        if (z<z_pos[k_0])
-        {
-            k_0 -= n_z>>i;
-        }
-        else
-        {
-            k_0 += n_z>>i;
-        }
+        if (z<z_pos[k_0]) k_0 -= n_z>>i;
+        else k_0 += n_z>>i;
     }
 
-    if (x<x_pos[i_0])
-    {
-        while (x<safe_get_x_pos(--i_0));
-    }
-    else
-    {
-        while (x>safe_get_x_pos(i_0+1)) i_0++;
-    }
+    if (x<x_pos[i_0]) while (x<safe_get_x_pos(--i_0));
+    else  while (x>safe_get_x_pos(i_0+1)) i_0++;
 
-    if (y<y_pos[j_0])
-    {
-        while (y<safe_get_y_pos(--j_0));
-    }
-    else
-    {
-        while (y>safe_get_y_pos(j_0+1)) j_0++;
-    }
+    if (y<y_pos[j_0]) while (y<safe_get_y_pos(--j_0));
+    else while (y>safe_get_y_pos(j_0+1)) j_0++;
 
-    if (z<z_pos[k_0])
-    {
-        while (z<safe_get_z_pos(--k_0));
-    }
-    else
-    {
-        while (z>safe_get_z_pos(k_0+1)) k_0++;
-    }
-
-    IndicesVec indices_vec;
-
-    indices_vec.i = i_0;
-    indices_vec.j = j_0;
-    indices_vec.k = k_0;
-
-    return indices_vec;
+    if (z<z_pos[k_0]) while (z<safe_get_z_pos(--k_0));
+    else while (z>safe_get_z_pos(k_0+1)) k_0++; 
 }
 
 
@@ -376,7 +328,9 @@ double Interpolator3D::tricubic_interpolate (double p[4][4][4], double t_x[4], d
 
 double Interpolator3D::get_interp_value_tricubic (double x, double y, double z)
 {
-    IndicesVec indices_vec = find_indices_of_closest_lower_data_point(x,y,z);
+    int i_0(n_x/2), j_0(n_y/2), k_0(n_z/2);
+
+    find_indices_of_closest_lower_data_point(x,y,z,i_0,j_0,k_0);
 
     double p[4][4][4];
     for (int i=0; i<4; i++)
@@ -385,7 +339,7 @@ double Interpolator3D::get_interp_value_tricubic (double x, double y, double z)
         {
             for (int k=0; k<4; k++)
             {
-                p[i][j][k] = safe_get_data_point(i+indices_vec.i-1,j+indices_vec.j-1,k+indices_vec.k-1);
+                p[i][j][k] = safe_get_data_point(i+i_0-1,j+j_0-1,k+k_0-1);
             }
         }
     }
@@ -396,9 +350,9 @@ double Interpolator3D::get_interp_value_tricubic (double x, double y, double z)
 
     for (int i=0; i<4; i++)
     {
-        t_x[i] = safe_get_x_pos(i+indices_vec.i-1);
-        t_y[i] = safe_get_y_pos(i+indices_vec.j-1);
-        t_z[i] = safe_get_z_pos(i+indices_vec.k-1);
+        t_x[i] = safe_get_x_pos(i+i_0-1);
+        t_y[i] = safe_get_y_pos(i+j_0-1);
+        t_z[i] = safe_get_z_pos(i+k_0-1);
     }
 
     x = (x-t_x[1])/(t_x[2]-t_x[1]);
@@ -428,7 +382,7 @@ double Interpolator3D::get_interp_value_tricubic (double x, double y, double z)
 
 Interpolator3D::~Interpolator3D()
 {
-    if (grid_is_set) delete_grid();
+    if (x_pos) delete_grid();
     
-    if (data_array_is_prepared) delete_data_array();
+    if (data_array) delete_data_array();
 }
