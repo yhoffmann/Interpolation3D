@@ -306,8 +306,9 @@ double Interpolator3D::unicubic_interpolate (double p[4], double t[4], double z)
 {
     double p2_m_p0_div_t2_m_t0 = (p[2]-p[0])/(t[2]-t[0]);
     double p3_m_p1_div_t3_m_t1 = (p[3]-p[1])/(t[3]-t[1]);
+    double p1_m_p2 = p[1]-p[2];
 
-    return p[1] + z*p2_m_p0_div_t2_m_t0 + z*z*(-3.0*p[1]+3.0*p[2]-2.0*p2_m_p0_div_t2_m_t0-p3_m_p1_div_t3_m_t1) + z*z*z*(2.0*p[1]-2.0*p[2]+p2_m_p0_div_t2_m_t0+p3_m_p1_div_t3_m_t1);
+    return p[1] + z*p2_m_p0_div_t2_m_t0 + z*z*(-3.0*p1_m_p2-2.0*p2_m_p0_div_t2_m_t0-p3_m_p1_div_t3_m_t1) + z*z*z*(2.0*p1_m_p2+p2_m_p0_div_t2_m_t0+p3_m_p1_div_t3_m_t1);
 }
 
 
@@ -334,6 +335,54 @@ double Interpolator3D::tricubic_interpolate (double p[4][4][4], double t_x[4], d
 	bicubic_result[3] = bicubic_interpolate(p[3], t_y, t_z, y, z);
 
     return unicubic_interpolate(bicubic_result, t_x, x);
+}
+
+
+double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, double z)
+{
+    int i_0(n_x/2), j_0(n_y/2), k_0(n_z/2);
+
+    find_indices_of_closest_lower_data_point(x,y,z,i_0,j_0,k_0);
+
+    double p_z_0[4][4];
+    double p_z_1[4][4];
+    for (int i=0; i<4; i++)
+    {
+        for (int j=0; j<4; j++)
+        {
+            p_z_0[i][j] = safe_get_data_point(i+i_0-1,j+j_0-1,k_0);
+            p_z_1[i][j] = safe_get_data_point(i+i_0-1,j+j_0-1,k_0+1);
+        }
+    }
+
+    double t_x[4];
+    double t_y[4];
+    for (int i=0; i<4; i++)
+    {
+        t_x[i] = safe_get_x_pos(i+i_0-1);
+        t_y[i] = safe_get_y_pos(i+j_0-1);
+    }
+
+    x = (x-t_x[1])/(t_x[2]-t_x[1]);
+    y = (y-t_y[1])/(t_y[2]-t_y[1]);
+    z = (z-safe_get_z_pos(k_0))/(safe_get_z_pos(k_0+1)-safe_get_z_pos(k_0));
+
+    t_x[0] = (t_x[0]-t_x[1])/(t_x[2]-t_x[1]);
+    t_x[3] = (t_x[3]-t_x[1])/(t_x[2]-t_x[1]);
+    t_x[1] = 0.0;
+    t_x[2] = 1.0;
+
+    t_y[0] = (t_y[0]-t_y[1])/(t_y[2]-t_y[1]);
+    t_y[3] = (t_y[3]-t_y[1])/(t_y[2]-t_y[1]);
+    t_y[1] = 0.0;
+    t_y[2] = 1.0;
+
+    double bicbuic_result_0 = bicubic_interpolate(p_z_0,t_x,t_y,x,y);
+    double bicbuic_result_1 = bicubic_interpolate(p_z_1,t_x,t_y,x,y);
+
+    double bicubic_unilinear_result = bicbuic_result_0+z*(bicbuic_result_1-bicbuic_result_0);
+
+    return bicubic_unilinear_result;
 }
 
 

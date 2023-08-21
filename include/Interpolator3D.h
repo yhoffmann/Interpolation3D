@@ -78,6 +78,8 @@ public:
 
     double get_interp_value_tricubic(double x, double y, double z);
 
+    double get_interp_value_bicubic_unilinear(double x, double y, double z);
+
     double get_interp_value_gsl_tricubic(double x, double y, double z);
 
     ~Interpolator3D();
