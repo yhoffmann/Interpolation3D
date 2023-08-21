@@ -112,6 +112,17 @@ void Interpolator3D::prepare_data_array()
 
 void Interpolator3D::export_data (std::string filepath) 
 {
+    // checking if file already exists
+    std::ifstream file_check(filepath);
+    if (file_check)
+    {
+        file_check.close();
+        std::cout << "This file already exists and would be overwritten if data was exported. Do you want to overwrite the file? (Y/n)" << std::endl;
+        std::string answer;
+        std::cin >> answer;
+        if (answer!="Y") { std::cout << "Aborting" << std::endl; } 
+    }
+
     std::cout << "Exporting data_array to file..." << std::endl;
 
     std::ofstream out;
@@ -209,7 +220,7 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), D
     prepare_data_array();
 
     // filling data_array with function values
-    #pragma omp parallel for
+    #pragma omp parallel for ordered
     for (uint i=0; i<n_x; i++)
     {
         for (uint j=0; j<n_y; j++)

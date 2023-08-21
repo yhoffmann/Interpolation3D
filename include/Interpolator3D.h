@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <string>
+#include <math.h>
 
 
 enum class Dir
@@ -21,7 +22,7 @@ struct DataGenerationConfig
 {
     int n_x=200; double x_min=0.0; double x_max=15.0; std::string x_grid_spacing = "linear";
     int n_y=200; double y_min=0.0; double y_max=15.0; std::string y_grid_spacing = "linear";
-    int n_z=70; double z_min=0.0; double z_max=15.0; std::string z_grid_spacing = "linear";
+    int n_z=70; double z_min=0.0; double z_max=M_PI; std::string z_grid_spacing = "linear";
 };
 
 
