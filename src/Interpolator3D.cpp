@@ -131,12 +131,17 @@ void Interpolator3D::export_data (const std::string& filepath) const
     std::ifstream file_check(filepath);
     if (file_check)
     {
-        file_check.close();
         std::cout << "This file already exists and would be overwritten if data was exported. Do you want to overwrite the file? (Y/n)" << std::endl;
         std::string answer;
         std::cin >> answer;
-        if (answer!="Y") { std::cout << "Aborting" << std::endl; } 
+        if (answer!="Y")
+        {
+            file_check.close();
+            std::cout << "Aborting" << std::endl;
+            return;
+        } 
     }
+    file_check.close();
 
     std::cout << "Exporting data_array to file..." << std::endl;
 
