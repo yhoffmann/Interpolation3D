@@ -8,7 +8,6 @@
 #include <vector>
 #include <gsl/gsl_spline2d.h>
 #include <gsl/gsl_interp2d.h>
-#include "../testing/Timer.hpp"
 
 
 #define _INDEX(i,j,k) i*n_y*n_z+j*n_z+k

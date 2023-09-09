@@ -51,7 +51,6 @@ public:
     static double tricubic_interpolate(double p[4][4][4], double t_x[4], double t_y[4], double t_z[4], double x, double y, double z);  
     double get_interp_value_tricubic(double x, double y, double z) const;
     double get_interp_value_bicubic_unilinear(double x, double y, double z) const;
-    double get_interp_value_gsl_tricubic(double x, double y, double z) const;
     Interpolator3D();
     Interpolator3D(const std::string& filepath);
     Interpolator3D(const Interpolator3D&) = delete;
