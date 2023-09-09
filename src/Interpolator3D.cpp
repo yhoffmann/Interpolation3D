@@ -19,9 +19,27 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
     int n(0);
     double min(0), max(0);
 
-    if (dir == Dir::x) { grid_spacing = config->x_grid_spacing; n = config->n_x; min = config->x_min; max = config->x_max; }
-    else if (dir == Dir::y) { grid_spacing = config->y_grid_spacing; n = config->n_y; min = config->y_min; max = config->y_max; }
-    else if (dir == Dir::z) { grid_spacing = config->z_grid_spacing; n = config->n_z; min = config->z_min; max = config->z_max; }
+    if (dir == Dir::x)
+    {
+        grid_spacing = config->x_grid_spacing;
+        n = config->n_x;
+        min = config->x_min;
+        max = config->x_max;
+    }
+    else if (dir == Dir::y)
+    {
+        grid_spacing = config->y_grid_spacing;
+        n = config->n_y;
+        min = config->y_min;
+        max = config->y_max;
+    }
+    else // if (dir == Dir::z)
+    {
+        grid_spacing = config->z_grid_spacing;
+        n = config->n_z;
+        min = config->z_min;
+        max = config->z_max;
+    }
 
     // log only really makes sense for values >=0
     if (grid_spacing == Linear)
@@ -42,7 +60,6 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
     }
     else
     {
-        return 0;
         exit(0);
     }
 }
