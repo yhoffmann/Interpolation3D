@@ -15,7 +15,7 @@
 
 double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
 {
-    std::string grid_spacing;
+    GridSpacing grid_spacing;
     int n(0);
     double min(0), max(0);
 
@@ -24,11 +24,11 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
     else if (dir == Dir::z) { grid_spacing = config->z_grid_spacing; n = config->n_z; min = config->z_min; max = config->z_max; }
 
     // log only really makes sense for values >=0
-    if (grid_spacing == "linear")
+    if (grid_spacing == Linear)
     {
         return min+(max-min)*(double(i))/(double(n-1));
     }
-    else if (grid_spacing == "log")
+    else if (grid_spacing == Logarithmic)
     {
         if (min == 0)
         {

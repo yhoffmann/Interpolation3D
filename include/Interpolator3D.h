@@ -6,17 +6,23 @@
 #include <math.h>
 
 
-enum class Dir
+enum class Dir : unsigned char
 {
     x, y, z
 };
 
 
+enum GridSpacing : unsigned char
+{
+    Linear, Logarithmic
+};
+
+
 struct DataGenerationConfig
 {
-    int n_x=200; double x_min=0.0; double x_max=15.0; std::string x_grid_spacing = "linear";
-    int n_y=200; double y_min=0.0; double y_max=15.0; std::string y_grid_spacing = "linear";
-    int n_z=70; double z_min=0.0; double z_max=M_PI; std::string z_grid_spacing = "linear";
+    int n_x=300; double x_min=0.0; double x_max=15.0; GridSpacing x_grid_spacing = Linear;
+    int n_y=300; double y_min=0.0; double y_max=15.0; GridSpacing y_grid_spacing = Linear;
+    int n_z=30; double z_min=0.0; double z_max=M_PI; GridSpacing z_grid_spacing = Linear;
 };
 
 
