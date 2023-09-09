@@ -1,0 +1,3 @@
+[submodule "easy-progress-monitor"]
+	path = easy-progress-monitor
+	url = https://github.com/yhoffmann/easy-progress-monitor.git
