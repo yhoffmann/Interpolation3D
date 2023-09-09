@@ -1,4 +1,3 @@
-#include "../include/Interpolator3D.h"
 #include <cmath>
 #include <string>
 #include <iostream>
@@ -8,6 +7,8 @@
 #include <vector>
 #include <gsl/gsl_spline2d.h>
 #include <gsl/gsl_interp2d.h>
+#include "../include/Interpolator3D.h"
+#include "../easy-progress-monitor/include/ProgressMonitor.hpp"
 
 
 #define _INDEX(i,j,k) i*n_y*n_z+j*n_z+k
@@ -238,6 +239,8 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), c
     set_grid(config);
     prepare_data_array();
 
+    ProgressMonitor pm(n_x);
+
     // filling data_array with function values
     #pragma omp parallel for ordered
     for (uint i=0; i<n_x; i++)
@@ -250,7 +253,10 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), c
             }
         }
         if (progress_monitor)
-            std::cout << "Progress (# of y-z planes finished): " << i << std::endl;
+        {
+            pm.add_finished();
+            pm.print_progress_percentage();
+        }
     }
 }
 
