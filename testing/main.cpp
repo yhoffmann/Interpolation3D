@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#include <thread>
 
 
 double f(double x, double y, double z)
@@ -45,23 +46,28 @@ int main (int argc, char** argv)
     }
 */
 
-    double x = 5.0;
+    double x = 5.3;
     double y = 2.158;
     double z = 1.012;
-    //std::cout << x << " " << f(x,y,z) << "\n" << ip.get_interp_value_tricubic(x,y,z) << std::endl;
+    std::cout << x << " " << f(x,y,z) << "\n" << ip.get_interp_value_tricubic(x,y,z) << std::endl;
 
-    int imax = 1e8+1;  
+    int imax = 1e8+1;
+
+    double sum = 0.0;
+    double current_value = 0.0;
     //#pragma omp parallel for
     for (int i=0; i<imax; i++)
     {
         double x = 10.0*double(i)/double(imax-1)+0.01;
         double y=x, z=x;
-        //std::cout << std::setprecision(10) << x << " " << f(x,y,z) << " " << ip.get_interp_value_tricubic(x,y,z) << std::endl;
+        //std::cout << std::setprecision(10) << x << " " << f(x,y,z) << " " << (f(x,y,z)-ip.get_interp_value_tricubic(x,y,z))/f(x,y,z) << std::endl;
         (void)ip.get_interp_value_tricubic(x,y,z);
+        //(void)ip.get_interp_value_bicubic_unilinear(x,y,z);
+        //current_value = (ip.get_interp_value_bicubic_unilinear(x,y,z)-f(x,y,z))/f(x,y,z);
+        //sum += current_value*current_value;
         //std::cout << "x " << x << std::endl;
     }
+    //std::cout << std::sqrt(sum) << std::endl;
 
     //ip.print_data_to_file(filepath);
-
-    return 0;
 }
