@@ -305,9 +305,9 @@ double Interpolator3D::safe_get_x_pos (int i) const
     if (i<0)
         return x_pos[0]+double(i);
     else if (i>int(n_x-1))
-        return x_pos[n_x-(uint)1]+double(i-int(n_x-1));
+        return x_pos[n_x-1]+double(i-int(n_x-1));
     else
-        return x_pos[(uint)i];
+        return x_pos[i];
 }
 
 
@@ -316,9 +316,9 @@ double Interpolator3D::safe_get_y_pos (int i) const
     if (i<0)
         return y_pos[0]+double(i);
     else if (i>int(n_y-1))
-        return y_pos[n_y-(uint)1]+double(i-int(n_y-1));
+        return y_pos[n_y-1]+double(i-int(n_y-1));
     else
-        return y_pos[(uint)i];
+        return y_pos[i];
 }
 
 
@@ -327,9 +327,9 @@ double Interpolator3D::safe_get_z_pos (int i) const
     if (i<0)
         return z_pos[0]+double(i);
     else if (i>int(n_z-1))
-        return z_pos[n_z-(uint)1]+double(i-int(n_z-1));
+        return z_pos[n_z-1]+double(i-int(n_z-1));
     else
-        return z_pos[(uint)i];
+        return z_pos[i];
 }
 
 
