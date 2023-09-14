@@ -7,7 +7,7 @@
 #include <vector>
 #include <gsl/gsl_spline2d.h>
 #include <gsl/gsl_interp2d.h>
-#include "../include/Interpolator3D.h"
+#include "../include/Interpolator3D.hpp"
 #include "../easy-progress-monitor/include/ProgressMonitor.hpp"
 
 
