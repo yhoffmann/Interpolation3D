@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <vector>
 #include "../include/Interpolator3D.hpp"
-#include "../easy-progress-monitor/include/ProgressMonitor.hpp"
+#include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
 
 
 #define _INDEX(i,j,k) i*n_y*n_z+j*n_z+k
