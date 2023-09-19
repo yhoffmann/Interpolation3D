@@ -9,14 +9,15 @@
 #include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
 
 
-#define _INDEX(i,j,k) i*n_y*n_z+j*n_z+k
+#define _INDEX(i,j,k) (i)*n_y*n_z+(j)*n_z+k
 
 
 double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
 {
     GridSpacing grid_spacing;
-    int n(0);
-    double min(0), max(0);
+    int n;
+    double min, max;
+    double k;
 
     if (dir == Dir::x)
     {
@@ -24,6 +25,7 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
         n = config->n_x;
         min = config->x_min;
         max = config->x_max;
+        k = config->x_exp_grid_spacing_parameter;
     }
     else if (dir == Dir::y)
     {
@@ -31,6 +33,7 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
         n = config->n_y;
         min = config->y_min;
         max = config->y_max;
+        k = config->y_exp_grid_spacing_parameter;
     }
     else // if (dir == Dir::z)
     {
@@ -38,29 +41,18 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
         n = config->n_z;
         min = config->z_min;
         max = config->z_max;
+        k = config->z_exp_grid_spacing_parameter;
     }
 
-    // log only really makes sense for values >=0
+    if (k==0.0)
+        grid_spacing = Linear;
+
     if (grid_spacing == Linear)
-    {
         return min+(max-min)*(double(i))/(double(n-1));
-    }
-    else if (grid_spacing == Logarithmic)
-    {
-        if (min == 0)
-        {
-            min = 1.0e-3*(max-min)/(double(n-1));
-            return min*exp(log(max/min)*(double(i))/double(n-1))-min;
-        }
-        else
-        {
-            return min*exp(log(max/min)*(double(i))/double(n-1));
-        }
-    }
+    else if (grid_spacing == Exponential)
+        return min+(max-min)*( exp( M_LN2*double(i)/double(n-1)*k )-1.0 )/( std::pow(2.0,k)-1.0 );
     else
-    {
         exit(0);
-    }
 }
 
 
@@ -237,7 +229,7 @@ void Interpolator3D::import_data (const std::string& filepath)
 }
 
 
-void Interpolator3D::generate_data (double func(double x, double y, double z), const DataGenerationConfig* config, bool progress_monitor)
+void Interpolator3D::generate_data (std::function<double (double,double,double)> func, const DataGenerationConfig* config, bool progress_monitor)
 {
     set_grid(config);
     prepare_data_array();
@@ -264,20 +256,26 @@ void Interpolator3D::generate_data (double func(double x, double y, double z), c
 }
 
 
-void Interpolator3D::find_indices_of_closest_lower_data_point (double x, double y, double z, int& i_0, int& j_0, int& k_0) const
+void Interpolator3D::find_closest_lower_data_point(int& i_0, int& j_0, int& k_0, double x, double y, double z) const
 {
     for (uint i=2; n_x>>i>2; i++) // having only one for loop was always faster than having 1 each for n_x, n_y, n_z in testing (and results are of course the same)
     {
-        if (x<x_pos[i_0]) i_0 -= n_x>>i;
-        else i_0 += n_x>>i;
+        if (x<x_pos[i_0])
+            i_0 -= n_x>>i;
+        else
+            i_0 += n_x>>i;
 
-        if (y<y_pos[j_0]) j_0 -= n_y>>i;
-        else j_0 += n_y>>i;
+        if (y<y_pos[j_0])
+            j_0 -= n_y>>i;
+        else
+            j_0 += n_y>>i;
 
-        if (z<z_pos[k_0]) k_0 -= n_z>>i;
-        else k_0 += n_z>>i;
+        if (z<z_pos[k_0])
+            k_0 -= n_z>>i;
+        else
+            k_0 += n_z>>i;
     }
-
+    
     if (x<x_pos[i_0]) 
         while (x<safe_get_x_pos(--i_0));
     else
@@ -354,8 +352,8 @@ double Interpolator3D::safe_get_data_point (int i, int j, int k) const
 
 double Interpolator3D::unicubic_interpolate (double p[4], double t[4], double z)
 {
-    double p2_m_p0_div_t2_m_t0 = (p[2]-p[0])/(t[2]-t[0]);
-    double p3_m_p1_div_t3_m_t1 = (p[3]-p[1])/(t[3]-t[1]);
+    double p2_m_p0_div_t2_m_t0 = (p[2]-p[0])/(1.0-t[0]);
+    double p3_m_p1_div_t3_m_t1 = (p[3]-p[1])/t[3];
     double p1_m_p2 = p[1]-p[2];
 
     return p[1] + z*p2_m_p0_div_t2_m_t0 + z*z*(-3.0*p1_m_p2-2.0*p2_m_p0_div_t2_m_t0-p3_m_p1_div_t3_m_t1) + z*z*z*(2.0*p1_m_p2+p2_m_p0_div_t2_m_t0+p3_m_p1_div_t3_m_t1);
@@ -392,7 +390,7 @@ double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, d
 {
     int i_0(n_x/2), j_0(n_y/2), k_0(n_z/2);
 
-    find_indices_of_closest_lower_data_point(x,y,z,i_0,j_0,k_0);
+    find_closest_lower_data_point(i_0,j_0,k_0,x,y,z);
 
     double p_z_0[4][4];
     double p_z_1[4][4];
@@ -440,7 +438,7 @@ double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) 
 {
     int i_0(n_x/2), j_0(n_y/2), k_0(n_z/2);
 
-    find_indices_of_closest_lower_data_point(x,y,z,i_0,j_0,k_0);
+    find_closest_lower_data_point(i_0,j_0,k_0,x,y,z);
 
     double p[4][4][4];
     for (int i=0; i<4; i++)
