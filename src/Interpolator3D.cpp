@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <cstring>
 #include "../include/Interpolator3D.hpp"
 #include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
 
@@ -52,7 +53,7 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
     else if (grid_spacing == Exponential)
         return min+(max-min)*( exp( M_LN2*double(i)/double(n-1)*k )-1.0 )/( std::pow(2.0,k)-1.0 );
     else
-        exit(0);
+        exit(-1);
 }
 
 
@@ -500,6 +501,66 @@ Interpolator3D::Interpolator3D()
 Interpolator3D::Interpolator3D (const std::string& filepath)
 {
     import_data(filepath);
+}
+
+
+Interpolator3D::Interpolator3D (const Interpolator3D& other)
+{
+    n_x = other.n_x;
+    n_y = other.n_y;
+    n_z = other.n_z;
+
+    data_array = new double [n_x*n_y*n_z];
+    x_pos = new double [n_x];
+    y_pos = new double [n_y];
+    z_pos = new double [n_z];
+
+    std::copy(other.data_array, other.data_array+n_x*n_y*n_z, data_array);
+    std::copy(other.x_pos, other.x_pos+n_x, x_pos);
+    std::copy(other.y_pos, other.y_pos+n_y, y_pos);
+    std::copy(other.z_pos, other.z_pos+n_z, z_pos);
+}
+
+
+Interpolator3D& Interpolator3D::operator= (const Interpolator3D& other)
+{
+    if (this==&other)
+        return *this;
+
+    safe_delete_data_array();
+    safe_delete_grid();
+
+    n_x = other.n_x;
+    n_y = other.n_y;
+    n_z = other.n_z;
+
+    data_array = new double [n_x*n_y*n_z];
+    x_pos = new double [n_x];
+    y_pos = new double [n_y];
+    z_pos = new double [n_z];
+
+    std::copy(other.data_array, other.data_array+n_x*n_y*n_z, data_array);
+    std::copy(other.x_pos, other.x_pos+n_x, x_pos);
+    std::copy(other.y_pos, other.y_pos+n_y, y_pos);
+    std::copy(other.z_pos, other.z_pos+n_z, z_pos);
+
+    return *this;
+}
+
+
+Interpolator3D& Interpolator3D::operator= (Interpolator3D&& other)
+{
+    if (this==&other)
+        return *this;
+
+    memcpy(this, &other, sizeof(Interpolator3D));
+
+    other.data_array = nullptr;
+    other.x_pos = nullptr;
+    other.y_pos = nullptr;
+    other.z_pos = nullptr;
+
+    return *this;
 }
 
 
