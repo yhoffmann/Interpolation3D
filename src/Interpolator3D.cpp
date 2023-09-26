@@ -90,13 +90,13 @@ void Interpolator3D::set_grid (const DataGenerationConfig* config)
     if (config)
     {
         for (uint i=0; i<n_x; i++)
-            x_pos[i] = pos_of_grid_point(Dir::x,i,config);
+            x_pos[i] = pos_of_grid_point(Dir::x, i, config);
 
         for (uint j=0; j<n_y; j++)
-            y_pos[j] = pos_of_grid_point(Dir::y,j,config);
+            y_pos[j] = pos_of_grid_point(Dir::y, j, config);
 
         for (uint k=0; k<n_z; k++)
-            z_pos[k] = pos_of_grid_point(Dir::z,k,config);
+            z_pos[k] = pos_of_grid_point(Dir::z, k, config);
     }
 }
 
@@ -245,7 +245,7 @@ void Interpolator3D::generate_data (std::function<double (double,double,double)>
         {
             for (uint k=0; k<n_z; k++)
             {
-                data_array[_INDEX(i,j,k)] = func(x_pos[i],y_pos[j],z_pos[k]);
+                data_array[_INDEX(i,j,k)] = func(x_pos[i], y_pos[j], z_pos[k]);
             }
         }
         if (progress_monitor)
@@ -293,7 +293,7 @@ void Interpolator3D::find_closest_lower_data_point(int& i_0, int& j_0, int& k_0,
         while (z<safe_get_z_pos(--k_0));
     else
         while (z>safe_get_z_pos(k_0+1))
-            k_0++; 
+            k_0++;
 }
 
 
@@ -510,10 +510,8 @@ Interpolator3D::Interpolator3D (const Interpolator3D& other)
     n_y = other.n_y;
     n_z = other.n_z;
 
-    data_array = new double [n_x*n_y*n_z];
-    x_pos = new double [n_x];
-    y_pos = new double [n_y];
-    z_pos = new double [n_z];
+    prepare_data_array();
+    set_grid(nullptr);
 
     std::copy(other.data_array, other.data_array+n_x*n_y*n_z, data_array);
     std::copy(other.x_pos, other.x_pos+n_x, x_pos);
@@ -527,17 +525,12 @@ Interpolator3D& Interpolator3D::operator= (const Interpolator3D& other)
     if (this==&other)
         return *this;
 
-    safe_delete_data_array();
-    safe_delete_grid();
-
     n_x = other.n_x;
     n_y = other.n_y;
     n_z = other.n_z;
 
-    data_array = new double [n_x*n_y*n_z];
-    x_pos = new double [n_x];
-    y_pos = new double [n_y];
-    z_pos = new double [n_z];
+    prepare_data_array();
+    set_grid(nullptr);
 
     std::copy(other.data_array, other.data_array+n_x*n_y*n_z, data_array);
     std::copy(other.x_pos, other.x_pos+n_x, x_pos);
