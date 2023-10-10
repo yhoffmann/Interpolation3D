@@ -10,9 +10,6 @@
 #include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
 #include <omp.h>
 
-#ifdef _USE_AVX2
-#include <immintrin.h>
-#endif
 
 #define _INDEX(i,j,k) (i)*(n_y+3)*(n_z+3)+(j)*(n_z+3)+k
 
@@ -557,45 +554,6 @@ double Interpolator3D::unicubic_interpolate (double p[4], double t[4], double z)
 }
 
 
-#ifdef _USE_AVX2
-double Interpolator3D::bicubic_interpolate (double p[4][4], double t_y[4], double t_z[4], double y, double z)
-{
-	double unicubic_result[4];
-
-    __m256d results_SIMD(_mm256_setzero_pd()), t_z_SIMD[4], z_SIMD(_mm256_set1_pd(z)), p_SIMD[4];
-
-    for (uint i=0; i<4; i++)
-    {
-        p_SIMD[i] = _mm256_loadu_pd(p[i]);
-        t_z_SIMD[i] = _mm256_set1_pd(t_z[i]);
-    }
-
-    __m256d p2_m_p0_div_t2_m_t0_SIMD = _mm256_sub_pd(p_SIMD[2], p_SIMD[0]);
-    __m256d temp = _mm256_sub_pd(_mm256_set1_pd(1.0), t_z_SIMD[0]);
-    p2_m_p0_div_t2_m_t0_SIMD = _mm256_div_pd(p2_m_p0_div_t2_m_t0_SIMD, temp);
-
-    __m256d p3_m_p1_div_t3_m_t1_SIMD = _mm256_sub_pd(p_SIMD[3], p_SIMD[1]);
-    p3_m_p1_div_t3_m_t1_SIMD = _mm256_div_pd(p3_m_p1_div_t3_m_t1_SIMD, t_z_SIMD[3]);
-
-    __m256d p1_m_p2_SIMD = _mm256_sub_pd(p_SIMD[1], p_SIMD[2]);
-
-    results_SIMD = _mm256_add_pd(results_SIMD, p_SIMD[1]); // p[1]
-    temp = _mm256_mul_pd(z_SIMD, p2_m_p0_div_t2_m_t0_SIMD); // z*p2_m_p0_div_t2_m_t0
-    results_SIMD = _mm256_add_pd(results_SIMD, temp); // p[1]+z*p2_m_p0_div_t2_m_t0
-    temp = _mm256_add_pd(_mm256_mul_pd(_mm256_set1_pd(-3.0), p1_m_p2_SIMD), _mm256_mul_pd(_mm256_set1_pd(-2.0), p2_m_p0_div_t2_m_t0_SIMD));
-    temp = _mm256_sub_pd(temp, p3_m_p1_div_t3_m_t1_SIMD);
-    temp = _mm256_mul_pd(temp, _mm256_mul_pd(z_SIMD, z_SIMD));
-    results_SIMD = _mm256_add_pd(results_SIMD, temp); // p[1]+z*p2_m_p0_div_t2_m_t0+z*z*(-3.0*p1_m_p2-2.0*p2_m_p0_div_t2_m_t0-p3_m_p1_div_t3_m_t1)
-    temp = _mm256_add_pd(_mm256_mul_pd(_mm256_set1_pd(2.0), p1_m_p2_SIMD), p2_m_p0_div_t2_m_t0_SIMD);
-    temp = _mm256_add_pd(temp, p3_m_p1_div_t3_m_t1_SIMD);
-    temp = _mm256_mul_pd(temp, _mm256_mul_pd(z_SIMD, _mm256_mul_pd(z_SIMD, z_SIMD)));
-    results_SIMD = _mm256_add_pd(results_SIMD, temp);
-
-    _mm256_storeu_pd(unicubic_result, results_SIMD);
-
-	return unicubic_interpolate(unicubic_result, t_y, y);
-}
-#else
 double Interpolator3D::bicubic_interpolate (double p[4][4], double t_y[4], double t_z[4], double y, double z)
 {
 	double unicubic_result[4];
@@ -607,7 +565,6 @@ double Interpolator3D::bicubic_interpolate (double p[4][4], double t_y[4], doubl
 
 	return unicubic_interpolate(unicubic_result, t_y, y);
 }
-#endif
 
 
 double Interpolator3D::tricubic_interpolate (double p[4][4][4], double t_x[4], double t_y[4], double t_z[4], double x, double y, double z)
