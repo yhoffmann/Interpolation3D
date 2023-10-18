@@ -5,9 +5,11 @@
 #include <string>
 #include <math.h>
 #include <functional>
-#include <mutex>
 #include <omp.h>
 #include <iostream>
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_interp2d.h>
+#include <gsl/gsl_spline2d.h>
 
 
 enum class Dir : unsigned char
@@ -31,14 +33,18 @@ struct DataGenerationConfig
 
 
 class Interpolator3D
-{public:
+{
+    uint n_x = 0;
+    uint n_y = 0;
+    uint n_z = 0;
     double* data_array = nullptr;
     double* x_pos = nullptr;
     double* y_pos = nullptr;
     double* z_pos = nullptr;
-    uint n_x = 0;
-    uint n_y = 0;
-    uint n_z = 0;
+    double* gsl_data_array = nullptr;
+    gsl_interp_accel** gsl_accel_x = nullptr;
+    gsl_interp_accel** gsl_accel_y = nullptr;
+    gsl_spline2d** gsl_spline = nullptr;
 
     void safe_delete_grid();
     void set_grid(const DataGenerationConfig* config);
@@ -57,15 +63,12 @@ public:
     void import_data_old_format(const std::string& filepath);
     void export_data (const std::string& filepath) const;
     void import_data(const std::string& filepath);
-    double safe_get_data_point(int i, int j, int k) const;
-    double safe_get_x_pos(int i) const;
-    double safe_get_y_pos(int i) const;
-    double safe_get_z_pos(int i) const;
     static double unicubic_interpolate(double p[4], double t_z[4], double z);
     static double bicubic_interpolate(double p[4][4], double t_y[4], double t_z[4], double y, double z);
     static double tricubic_interpolate(double p[4][4][4], double t_x[4], double t_y[4], double t_z[4], double x, double y, double z);
     double get_interp_value_tricubic(double x, double y, double z) const;
     double get_interp_value_bicubic_unilinear(double x, double y, double z) const;
+    double get_interp_value_tricubic_gsl(double x, double y, double z);
     
     Interpolator3D();
     Interpolator3D(const std::string& filepath);
@@ -74,5 +77,3 @@ public:
     Interpolator3D& operator=(Interpolator3D&& other);
     ~Interpolator3D();
 };
-
-inline std::mutex find_index_lock;

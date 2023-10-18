@@ -61,8 +61,10 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
 void Interpolator3D::safe_delete_data_array()
 {
     if (data_array)
+    {
         delete[] data_array;
-    data_array = nullptr;
+        data_array = nullptr;
+    }
 }
 
 
@@ -78,15 +80,20 @@ void Interpolator3D::prepare_data_array()
 void Interpolator3D::safe_delete_grid()
 {
     if (x_pos)
+    {
         delete[] x_pos;
+        x_pos = nullptr;
+    }
     if (y_pos)
+    {
         delete[] y_pos;
+        y_pos = nullptr;
+    }
     if (z_pos)
+    {
         delete[] z_pos;
-
-    x_pos = nullptr;
-    y_pos = nullptr;
-    z_pos = nullptr;
+        z_pos = nullptr;
+    }
 }
 
 
@@ -126,17 +133,17 @@ void Interpolator3D::set_grid (const DataGenerationConfig* config)
 
 void Interpolator3D::set_grid_outermost()
 {
-    x_pos[0] = x_pos[1]; // filling the three additional elements
+    x_pos[0] = x_pos[1]-1.0; // filling the three additional elements
     x_pos[n_x+1] = x_pos[n_x]+1.0;
-    x_pos[n_x+2] = x_pos[n_x]+2.0;
+    x_pos[n_x+2] = x_pos[n_x+1]+1.0;
 
-    y_pos[0] = y_pos[1];
+    y_pos[0] = y_pos[1]-1.0;
     y_pos[n_y+1] = y_pos[n_y]+1.0;
-    y_pos[n_y+2] = y_pos[n_y]+2.0;
+    y_pos[n_y+2] = y_pos[n_y+1]+1.0;
 
-    z_pos[0] = z_pos[1];
+    z_pos[0] = z_pos[1]-1.0;
     z_pos[n_z+1] = z_pos[n_z]+1.0;
-    z_pos[n_z+2] = z_pos[n_z]+2.0;
+    z_pos[n_z+2] = z_pos[n_z+1]+1.0;
 }
 
 
@@ -277,7 +284,10 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
             data_array[_INDEX(i, j, k)] = std::stod(line_vec[6]);
         }
     }
+
     in.close();
+
+    set_data_array_outermost();
 
     std::cout << "Finished importing data_array from file" << std::endl;
 }
@@ -402,9 +412,9 @@ void Interpolator3D::import_data (const std::string& filepath)
                 data_array[_INDEX(i, j, k)] = std::stod(line);
             }
 
-    set_data_array_outermost();
-
     in.close();
+
+    set_data_array_outermost();
 
     std::cout << "Finished importing data_array from file" << std::endl;
 }
@@ -490,60 +500,6 @@ uint Interpolator3D::find_index (double* arr, int size, double x)
 }
 
 
-double Interpolator3D::safe_get_x_pos (int i) const
-{
-    if (i<0)
-        return x_pos[0]+double(i);
-    else if (i>int(n_x-1))
-        return x_pos[n_x-1]+double(i-int(n_x-1));
-    else
-        return x_pos[i];
-}
-
-
-double Interpolator3D::safe_get_y_pos (int i) const
-{
-    if (i<0)
-        return y_pos[0]+double(i);
-    else if (i>int(n_y-1))
-        return y_pos[n_y-1]+double(i-int(n_y-1));
-    else
-        return y_pos[i];
-}
-
-
-double Interpolator3D::safe_get_z_pos (int i) const
-{
-    if (i<0)
-        return z_pos[0]+double(i);
-    else if (i>int(n_z-1))
-        return z_pos[n_z-1]+double(i-int(n_z-1));
-    else
-        return z_pos[i];
-}
-
-
-double Interpolator3D::safe_get_data_point (int i, int j, int k) const
-{
-    if (i<0)
-        i = 0;
-    else if (i>int(n_x-1)) 
-        i = n_x-1;
-
-    if (j<0)
-        j = 0;
-    else if (j>int(n_y-1))
-        j = n_y-1;
-
-    if (k<0)
-        k = 0;
-    else if (k>int(n_z-1))
-        k = n_z-1;
-
-    return data_array[_INDEX(i, j, k)];
-}
-
-
 double Interpolator3D::unicubic_interpolate (double p[4], double t[4], double z)
 {
     double p2_m_p0_div_t2_m_t0 = (p[2]-p[0])/(1.0-t[0]);
@@ -623,14 +579,14 @@ double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, d
     t_y[2] = 1.0;
 
     double bicbuic_result_0 = bicubic_interpolate(p_z_0, t_x, t_y, x, y);
-    double bicbuic_result_1 = bicubic_interpolate(p_z_1, t_x, t_y, x, y);
+    double bicbuic_result_1 = 0.0;//bicubic_interpolate(p_z_1, t_x, t_y, x, y);
 
     double bicubic_unilinear_result = bicbuic_result_0+z*(bicbuic_result_1-bicbuic_result_0);
 
     return bicubic_unilinear_result;
 }
 
-
+#include <immintrin.h>
 double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) const
 {
     int i_0, j_0, k_0;
@@ -655,26 +611,26 @@ double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) 
         t_z[i] = z_pos[i+k_0-1];
     }
 
-    double one_div_t_x_2_t_x_1 = 1.0/(t_x[2]-t_x[1]); // this looks like this because of performance advantages
-    double one_div_t_y_2_t_y_1 = 1.0/(t_y[2]-t_y[1]);
-    double one_div_t_z_2_t_z_1 = 1.0/(t_z[2]-t_z[1]);
+    double one_div_t_x_2_m_t_x_1 = 1.0/(t_x[2]-t_x[1]); // this looks like this because of performance advantages
+    double one_div_t_y_2_m_t_y_1 = 1.0/(t_y[2]-t_y[1]);
+    double one_div_t_z_2_m_t_z_1 = 1.0/(t_z[2]-t_z[1]);
 
-    x = (x-t_x[1])*one_div_t_x_2_t_x_1;
-    y = (y-t_y[1])*one_div_t_y_2_t_y_1;
-    z = (z-t_z[1])*one_div_t_z_2_t_z_1;
+    x = (x-t_x[1])*one_div_t_x_2_m_t_x_1;
+    y = (y-t_y[1])*one_div_t_y_2_m_t_y_1;
+    z = (z-t_z[1])*one_div_t_z_2_m_t_z_1;
 
-    t_x[0] = (t_x[0]-t_x[1])*one_div_t_x_2_t_x_1;
-    t_x[3] = (t_x[3]-t_x[1])*one_div_t_x_2_t_x_1;
+    t_x[0] = (t_x[0]-t_x[1])*one_div_t_x_2_m_t_x_1;
+    t_x[3] = (t_x[3]-t_x[1])*one_div_t_x_2_m_t_x_1;
     t_x[1] = 0.0;
     t_x[2] = 1.0;
 
-    t_y[0] = (t_y[0]-t_y[1])*one_div_t_y_2_t_y_1;
-    t_y[3] = (t_y[3]-t_y[1])*one_div_t_y_2_t_y_1;
+    t_y[0] = (t_y[0]-t_y[1])*one_div_t_y_2_m_t_y_1;
+    t_y[3] = (t_y[3]-t_y[1])*one_div_t_y_2_m_t_y_1;
     t_y[1] = 0.0;
     t_y[2] = 1.0;
 
-    t_z[0] = (t_z[0]-t_z[1])*one_div_t_z_2_t_z_1;
-    t_z[3] = (t_z[3]-t_z[1])*one_div_t_z_2_t_z_1;
+    t_z[0] = (t_z[0]-t_z[1])*one_div_t_z_2_m_t_z_1;
+    t_z[3] = (t_z[3]-t_z[1])*one_div_t_z_2_m_t_z_1;
     t_z[1] = 0.0;
     t_z[2] = 1.0;
 
