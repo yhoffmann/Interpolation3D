@@ -579,7 +579,7 @@ double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, d
     t_y[2] = 1.0;
 
     double bicbuic_result_0 = bicubic_interpolate(p_z_0, t_x, t_y, x, y);
-    double bicbuic_result_1 = 0.0;//bicubic_interpolate(p_z_1, t_x, t_y, x, y);
+    double bicbuic_result_1 = bicubic_interpolate(p_z_1, t_x, t_y, x, y);
 
     double bicubic_unilinear_result = bicbuic_result_0+z*(bicbuic_result_1-bicbuic_result_0);
 
