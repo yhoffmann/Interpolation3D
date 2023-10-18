@@ -586,7 +586,7 @@ double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, d
     return bicubic_unilinear_result;
 }
 
-#include <immintrin.h>
+
 double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) const
 {
     int i_0, j_0, k_0;
