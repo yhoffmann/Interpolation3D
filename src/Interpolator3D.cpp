@@ -156,13 +156,13 @@ void Interpolator3D::set_data_array_outermost()
                     uint i_temp = i;
                     if (i_temp==0)
                         i_temp = 1;
-                    else if (i_temp>n_x+1)
+                    else if (i_temp>n_x)
                         i_temp = n_x;
 
                     uint j_temp = j;
                     if (j_temp==0)
                         j_temp = 1;
-                    else if (j_temp>n_y+1)
+                    else if (j_temp>n_y)
                         j_temp = n_y;
 
                     uint k_temp = k;
@@ -277,16 +277,17 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
             j = std::stoi(line_vec[1]);
             k = std::stoi(line_vec[2]);
 
-            x_pos[i] = std::stod(line_vec[3]); // these assignments are done unnecessarily often but I cant be bothered to do this smarter
-            y_pos[j] = std::stod(line_vec[4]);
-            z_pos[k] = std::stod(line_vec[5]);
+            x_pos[i+1] = std::stod(line_vec[3]); // these assignments are done unnecessarily often but I cant be bothered to do this smarter
+            y_pos[j+1] = std::stod(line_vec[4]);
+            z_pos[k+1] = std::stod(line_vec[5]);
 
-            data_array[_INDEX(i, j, k)] = std::stod(line_vec[6]);
+            data_array[_INDEX(i+1, j+1, k+1)] = std::stod(line_vec[6]);
         }
     }
 
     in.close();
 
+    set_grid_outermost();
     set_data_array_outermost();
 
     std::cout << "Finished importing data_array from file" << std::endl;
