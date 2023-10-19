@@ -372,7 +372,7 @@ void Interpolator3D::import_data (const std::string& filepath)
     if (!in.is_open())
     {
 #ifndef _QUIET
-        std::crr << "Could not open given file. Aborting" << std::endl;
+        std::cerr << "Could not open given file. Aborting" << std::endl;
 #endif
         exit(319004);
     }
