@@ -13,7 +13,7 @@
 
 #define _INDEX(i,j,k) (i)*(n_y+3)*(n_z+3)+(j)*(n_z+3)+k
 
-
+#define _QUIET
 double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
 {
     GridSpacing grid_spacing;
@@ -178,6 +178,7 @@ void Interpolator3D::set_data_array_outermost()
 
 void Interpolator3D::export_data_old_format (const std::string& filepath) const
 {
+#ifndef _QUIET
     // checking if file already exists
     std::ifstream file_check(filepath);
     if (file_check)
@@ -195,12 +196,15 @@ void Interpolator3D::export_data_old_format (const std::string& filepath) const
     file_check.close();
 
     std::cout << "Exporting data_array to file..." << std::endl;
+#endif
 
     std::ofstream out;
     out.open(filepath);
     if (!out.is_open())
     {
+#ifndef _QUIET
         std::cerr << "Could not open given file. Aborting" << std::endl;
+#endif
         exit(319003);
     }
 
@@ -221,20 +225,24 @@ void Interpolator3D::export_data_old_format (const std::string& filepath) const
     }
 
     out.close();
-
+#ifndef _QUIET
     std::cout << "Finished exporting data_array to file" << std::endl;
+#endif
 }
 
 
 void Interpolator3D::import_data_old_format (const std::string& filepath)
 {
+#ifndef _QUIET
     std::cout << "Importing data_array IN THE OLD FORMAT from file..." << std::endl;
-
+#endif
     std::ifstream in;
     in.open(filepath);
     if (!in.is_open())
     {
+#ifndef _QUIET
         std::cerr << "Could not open given file. Aborting" << std::endl; 
+#endif
         exit(319004);
     }
 
@@ -250,7 +258,9 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
 
     if (line_vec[0] != "#N")
     {
+#ifndef _QUIET
         std::cerr << "Wrong data_array format, use generate_data() to generate data_array in the desired format. Aborting!" << std::endl;
+#endif
         exit(319005);
     }
 
@@ -289,13 +299,15 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
 
     set_grid_outermost();
     set_data_array_outermost();
-
+#ifndef _QUIET
     std::cout << "Finished importing data_array from file" << std::endl;
+#endif
 }
 
 
 void Interpolator3D::export_data (const std::string& filepath) const
 {
+#ifndef _QUIET
     std::ifstream file_check(filepath);
     if (file_check)
     {
@@ -312,12 +324,14 @@ void Interpolator3D::export_data (const std::string& filepath) const
     file_check.close();
 
     std::cout << "Exporting data_array to file..." << std::endl;
-
+#endif
     std::ofstream out;
     out.open(filepath);
     if (!out.is_open())
     {
+#ifndef _QUIET
         std::cerr << "Could not open given file. Aborting" << std::endl;
+#endif
         exit(319003);
     }
 
@@ -341,20 +355,25 @@ void Interpolator3D::export_data (const std::string& filepath) const
                 out << std::setprecision(10) << data_array[_INDEX(i, j, k)] << std::endl;
 
     out.close();
-
+#ifndef _QUIET
     std::cout << "Finished exporting data_array to file" << std::endl;
+#endif
 }
 
 
 void Interpolator3D::import_data (const std::string& filepath)
 {
+#ifndef _QUIET
     std::cout << "Importing data_array from file..." << std::endl;
+#endif
 
     std::ifstream in;
     in.open(filepath);
     if (!in.is_open())
     {
-        std::cerr << "Could not open given file. Aborting" << std::endl; 
+#ifndef _QUIET
+        std::crr << "Could not open given file. Aborting" << std::endl;
+#endif
         exit(319004);
     }
 
@@ -370,18 +389,22 @@ void Interpolator3D::import_data (const std::string& filepath)
 
     if (line_vec[0] == "#N")
     {
+#ifndef _QUIET
         std::cerr << "=========="
         "\n"
         "You are using the new function to import data that is in the old format. This will work but you should switch to new data format by just exporting data again with export_data. Old format will remain available for export with export_data_old_format."
         "\n\nAcknowledge with enter, the program will continue as usual."
         "\n=========" << std::endl;
         std::cin.get();
+#endif
         import_data_old_format(filepath);
         return;
     }
     if (line_vec[0] != "#n")
     {
+#ifndef _QUIET
         std::cerr << "Wrong data_array format, use generate_data() to generate data_array in the desired format. Aborting!" << std::endl;
+#endif
         exit(319005);
     }
 
@@ -416,8 +439,9 @@ void Interpolator3D::import_data (const std::string& filepath)
     in.close();
 
     set_data_array_outermost();
-
+#ifndef _QUIET
     std::cout << "Finished importing data_array from file" << std::endl;
+#endif
 }
 
 
@@ -439,11 +463,13 @@ void Interpolator3D::generate_data (std::function<double (double,double,double)>
                 data_array[_INDEX(i, j, k)] = func(x_pos[i], y_pos[j], z_pos[k]);
             }
         }
+#ifndef _QUIET
         if (progress_monitor)
         {
             pm.add_finished();
             pm.print_progress_percentage();
         }
+#endif
     }
 
     set_data_array_outermost();
