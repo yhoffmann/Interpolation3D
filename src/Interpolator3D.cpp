@@ -13,7 +13,7 @@
 
 #define _INDEX(i,j,k) (i)*(n_y+3)*(n_z+3)+(j)*(n_z+3)+k
 
-#define _QUIET
+
 double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
 {
     GridSpacing grid_spacing;
