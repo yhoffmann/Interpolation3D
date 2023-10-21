@@ -7,9 +7,6 @@
 #include <functional>
 #include <omp.h>
 #include <iostream>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_interp2d.h>
-#include <gsl/gsl_spline2d.h>
 
 
 enum class Dir : unsigned char
@@ -41,10 +38,6 @@ class Interpolator3D
     double* x_pos = nullptr;
     double* y_pos = nullptr;
     double* z_pos = nullptr;
-    double* gsl_data_array = nullptr;
-    gsl_interp_accel** gsl_accel_x = nullptr;
-    gsl_interp_accel** gsl_accel_y = nullptr;
-    gsl_spline2d** gsl_spline = nullptr;
 
     void safe_delete_grid();
     void set_grid(const DataGenerationConfig* config);

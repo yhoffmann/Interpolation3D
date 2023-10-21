@@ -51,10 +51,8 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
 
     if (grid_spacing == Linear)
         return min+(max-min)*(double(i))/(double(n-1));
-    else if (grid_spacing == Exponential)
+    else // if (grid_spacing == Exponential)
         return min+(max-min)*( exp( M_LN2*double(i)/double(n-1)*k )-1.0 )/( std::pow(2.0, k)-1.0 );
-    else
-        exit(-1);
 }
 
 
@@ -73,7 +71,7 @@ void Interpolator3D::prepare_data_array()
     safe_delete_data_array();
     data_array = new double [(n_x+3)*(n_y+3)*(n_z+3)]; // plus two because we need space for the additional element on each side
     if (!data_array)
-        exit(319002);
+        exit(50);
 }
 
 
@@ -113,7 +111,7 @@ void Interpolator3D::set_grid (const DataGenerationConfig* config)
     z_pos = new double [n_z+3];
 
     if (!x_pos || !y_pos || !z_pos)
-        exit(319001);
+        exit(51);
 
     if (config)
     {
@@ -205,7 +203,7 @@ void Interpolator3D::export_data_old_format (const std::string& filepath) const
 #ifndef _QUIET
         std::cerr << "Could not open given file. Aborting" << std::endl;
 #endif
-        exit(319003);
+        exit(52);
     }
 
     // printing n_x, n_y, n_z into the first line
@@ -243,7 +241,7 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
 #ifndef _QUIET
         std::cerr << "Could not open given file. Aborting" << std::endl; 
 #endif
-        exit(319004);
+        exit(53);
     }
 
     std::string line;
@@ -261,7 +259,7 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
 #ifndef _QUIET
         std::cerr << "Wrong data_array format, use generate_data() to generate data_array in the desired format. Aborting!" << std::endl;
 #endif
-        exit(319005);
+        exit(54);
     }
 
     n_x = std::stoi(line_vec[1]);
@@ -332,7 +330,7 @@ void Interpolator3D::export_data (const std::string& filepath) const
 #ifndef _QUIET
         std::cerr << "Could not open given file. Aborting" << std::endl;
 #endif
-        exit(319003);
+        exit(52);
     }
 
     out << "#n " << n_x << " " << n_y << " " << n_z << std::endl; // printing n_x, n_y, n_z into the first line
@@ -374,7 +372,7 @@ void Interpolator3D::import_data (const std::string& filepath)
 #ifndef _QUIET
         std::cerr << "Could not open given file. Aborting" << std::endl;
 #endif
-        exit(319004);
+        exit(53);
     }
 
     std::string line;
@@ -405,7 +403,7 @@ void Interpolator3D::import_data (const std::string& filepath)
 #ifndef _QUIET
         std::cerr << "Wrong data_array format, use generate_data() to generate data_array in the desired format. Aborting!" << std::endl;
 #endif
-        exit(319005);
+        exit(54);
     }
 
     n_x = std::stoi(line_vec[1]);
