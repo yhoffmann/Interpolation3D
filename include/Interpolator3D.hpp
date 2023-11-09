@@ -29,6 +29,12 @@ struct DataGenerationConfig
 };
 
 
+enum InterpolationType
+{
+    BicubicUnilinear, Tricubic
+};
+
+
 class Interpolator3D
 {
     uint n_x = 0;
@@ -62,6 +68,8 @@ public:
     double get_interp_value_tricubic(double x, double y, double z) const;
     double get_interp_value_bicubic_unilinear(double x, double y, double z) const;
     
+    double operator()(double x, double y, double z, InterpolationType type) const;
+
     Interpolator3D();
     Interpolator3D(const std::string& filepath);
     Interpolator3D(const Interpolator3D& other);

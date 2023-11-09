@@ -665,6 +665,23 @@ double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) 
 }
 
 
+double Interpolator3D::operator() (double x, double y, double z, InterpolationType type) const
+{
+    switch (type)
+    {
+        case BicubicUnilinear:
+            return get_interp_value_bicubic_unilinear(x, y, z);
+        break;
+
+        case Tricubic: // fallthrough
+
+        default:
+            return get_interp_value_tricubic(x, y, z);
+        break;
+    }
+}
+
+
 Interpolator3D::Interpolator3D()
 {
 }
