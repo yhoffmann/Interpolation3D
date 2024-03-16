@@ -1,3 +1,3 @@
 # Interpolation3D
 
-This repo allows for tricubic interpolation with arbitrary grid spacing.
+This class allows for tricubic interpolation with arbitrary grid spacing.
