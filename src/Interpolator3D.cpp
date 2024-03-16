@@ -4,14 +4,13 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <vector>
-#include <cstring>
+#include <omp.h>
+#include <algorithm>
 #include "../include/Interpolator3D.hpp"
 #include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
-#include <omp.h>
 
 
-#define _INDEX(i,j,k) (i)*(n_y+3)*(n_z+3)+(j)*(n_z+3)+k
+#define _INDEX(i, j, k) ((i)*(n_y+3)*(n_z+3)+(j)*(n_z+3)+k)
 
 
 double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
@@ -735,7 +734,7 @@ Interpolator3D& Interpolator3D::operator= (Interpolator3D&& other)
     if (this==&other)
         return *this;
 
-    memcpy(this, &other, sizeof(Interpolator3D));
+    std::copy(&other, &other+1, this);
 
     other.data_array = nullptr;
     other.x_pos = nullptr;
@@ -752,3 +751,6 @@ Interpolator3D::~Interpolator3D()
     
     safe_delete_data_array();
 }
+
+
+#undef _INDEX
