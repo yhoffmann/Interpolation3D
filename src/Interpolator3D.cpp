@@ -10,7 +10,7 @@
 #include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
 
 
-#define _INDEX(i, j, k) ((i)*(n_y+3)*(n_z+3)+(j)*(n_z+3)+k)
+#define _INDEX(i, j, k) ((i)*(m_ny+3)*(m_nz+3)+(j)*(m_nz+3)+k)
 
 
 double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
@@ -23,7 +23,7 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
     if (dir == Dir::x)
     {
         grid_spacing = config->x_grid_spacing;
-        n = config->n_x;
+        n = config->nx;
         min = config->x_min;
         max = config->x_max;
         k = config->x_exp_grid_spacing_parameter;
@@ -31,7 +31,7 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
     else if (dir == Dir::y)
     {
         grid_spacing = config->y_grid_spacing;
-        n = config->n_y;
+        n = config->ny;
         min = config->y_min;
         max = config->y_max;
         k = config->y_exp_grid_spacing_parameter;
@@ -39,7 +39,7 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
     else // if (dir == Dir::z)
     {
         grid_spacing = config->z_grid_spacing;
-        n = config->n_z;
+        n = config->nz;
         min = config->z_min;
         max = config->z_max;
         k = config->z_exp_grid_spacing_parameter;
@@ -55,41 +55,41 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
 }
 
 
-void Interpolator3D::safe_delete_data_array()
+void Interpolator3D::safe_delete_m_data()
 {
-    if (data_array)
+    if (m_data)
     {
-        delete[] data_array;
-        data_array = nullptr;
+        delete[] m_data;
+        m_data = nullptr;
     }
 }
 
 
-void Interpolator3D::prepare_data_array()
+void Interpolator3D::prepare_m_data()
 {
-    safe_delete_data_array();
-    data_array = new double [(n_x+3)*(n_y+3)*(n_z+3)]; // plus two because we need space for the additional element on each side
-    if (!data_array)
+    safe_delete_m_data();
+    m_data = new(std::nothrow) double [(m_nx+3)*(m_ny+3)*(m_nz+3)]; // plus two because we need space for the additional element on each side
+    if (!m_data)
         exit(50);
 }
 
 
 void Interpolator3D::safe_delete_grid()
 {
-    if (x_pos)
+    if (m_x)
     {
-        delete[] x_pos;
-        x_pos = nullptr;
+        delete[] m_x;
+        m_x = nullptr;
     }
-    if (y_pos)
+    if (m_y)
     {
-        delete[] y_pos;
-        y_pos = nullptr;
+        delete[] m_y;
+        m_y = nullptr;
     }
-    if (z_pos)
+    if (m_z)
     {
-        delete[] z_pos;
-        z_pos = nullptr;
+        delete[] m_z;
+        m_z = nullptr;
     }
 }
 
@@ -100,28 +100,28 @@ void Interpolator3D::set_grid (const DataGenerationConfig* config)
 
     if (config)
     {
-        n_x = config->n_x;
-        n_y = config->n_y;
-        n_z = config->n_z;
+        m_nx = config->nx;
+        m_ny = config->ny;
+        m_nz = config->nz;
     }
 
-    x_pos = new double [n_x+3]; // +3 because we need space for one more to the left and two more to the right
-    y_pos = new double [n_y+3];
-    z_pos = new double [n_z+3];
+    m_x = new(std::nothrow) double [m_nx+3]; // +3 because we need space for one more to the left and two more to the right
+    m_y = new(std::nothrow) double [m_ny+3];
+    m_z = new(std::nothrow) double [m_nz+3];
 
-    if (!x_pos || !y_pos || !z_pos)
+    if (!m_x || !m_y || !m_z)
         exit(51);
 
     if (config)
     {
-        for (uint i=0; i<n_x; i++)
-            x_pos[i+1] = pos_of_grid_point(Dir::x, i, config); // +1 because we do not fill the two outermost elements yet
+        for (uint i=0; i<m_nx; i++)
+            m_x[i+1] = pos_of_grid_point(Dir::x, i, config); // +1 because we do not fill the two outermost elements yet
 
-        for (uint j=0; j<n_y; j++)
-            y_pos[j+1] = pos_of_grid_point(Dir::y, j, config);
+        for (uint j=0; j<m_ny; j++)
+            m_y[j+1] = pos_of_grid_point(Dir::y, j, config);
 
-        for (uint k=0; k<n_z; k++)
-            z_pos[k+1] = pos_of_grid_point(Dir::z, k, config);
+        for (uint k=0; k<m_nz; k++)
+            m_z[k+1] = pos_of_grid_point(Dir::z, k, config);
 
         set_grid_outermost();
     }
@@ -130,45 +130,45 @@ void Interpolator3D::set_grid (const DataGenerationConfig* config)
 
 void Interpolator3D::set_grid_outermost()
 {
-    x_pos[0] = x_pos[1]-1.0; // filling the three additional elements
-    x_pos[n_x+1] = x_pos[n_x]+1.0;
-    x_pos[n_x+2] = x_pos[n_x+1]+1.0;
+    m_x[0] = m_x[1]-1.0; // filling the three additional elements
+    m_x[m_nx+1] = m_x[m_nx]+1.0;
+    m_x[m_nx+2] = m_x[m_nx+1]+1.0;
 
-    y_pos[0] = y_pos[1]-1.0;
-    y_pos[n_y+1] = y_pos[n_y]+1.0;
-    y_pos[n_y+2] = y_pos[n_y+1]+1.0;
+    m_y[0] = m_y[1]-1.0;
+    m_y[m_ny+1] = m_y[m_ny]+1.0;
+    m_y[m_ny+2] = m_y[m_ny+1]+1.0;
 
-    z_pos[0] = z_pos[1]-1.0;
-    z_pos[n_z+1] = z_pos[n_z]+1.0;
-    z_pos[n_z+2] = z_pos[n_z+1]+1.0;
+    m_z[0] = m_z[1]-1.0;
+    m_z[m_nz+1] = m_z[m_nz]+1.0;
+    m_z[m_nz+2] = m_z[m_nz+1]+1.0;
 }
 
 
-void Interpolator3D::set_data_array_outermost()
+void Interpolator3D::set_m_data_outermost()
 {
-    for (uint i=0; i<n_x+3; i++)
-        for (uint j=0; j<n_y+3; j++)
-            for (uint k=0; k<n_z+3; k++)
+    for (uint i=0; i<m_nx+3; i++)
+        for (uint j=0; j<m_ny+3; j++)
+            for (uint k=0; k<m_nz+3; k++)
                 {
                     uint i_temp = i;
                     if (i_temp==0)
                         i_temp = 1;
-                    else if (i_temp>n_x)
-                        i_temp = n_x;
+                    else if (i_temp>m_nx)
+                        i_temp = m_nx;
 
                     uint j_temp = j;
                     if (j_temp==0)
                         j_temp = 1;
-                    else if (j_temp>n_y)
-                        j_temp = n_y;
+                    else if (j_temp>m_ny)
+                        j_temp = m_ny;
 
                     uint k_temp = k;
                     if (k_temp==0)
                         k_temp = 1;
-                    else if (k_temp>n_z)
-                        k_temp = n_z;
+                    else if (k_temp>m_nz)
+                        k_temp = m_nz;
 
-                    data_array[_INDEX(i, j, k)] = data_array[_INDEX(i_temp, j_temp, k_temp)]; // this is doing a lot of unnecessary assignments as well but again, this would be too complicated to implement in a smarter way. also, this will typically only be run once so performance should not be an issue
+                    m_data[_INDEX(i, j, k)] = m_data[_INDEX(i_temp, j_temp, k_temp)]; // this is doing a lot of unnecessary assignments as well but again, this would be too complicated to implement in a smarter way. also, this will typically only be run once so performance should not be an issue
                 }
 }
 
@@ -192,7 +192,7 @@ void Interpolator3D::export_data_old_format (const std::string& filepath) const
     }
     file_check.close();
 
-    std::cout << "Exporting data_array to file..." << std::endl;
+    std::cout << "Exporting m_data to file..." << std::endl;
 #endif
 
     std::ofstream out;
@@ -205,16 +205,16 @@ void Interpolator3D::export_data_old_format (const std::string& filepath) const
         exit(52);
     }
 
-    // printing n_x, n_y, n_z into the first line
-    out << "#N " << n_x << " " << n_y << " " << n_z << std::endl;
+    // printing m_nx, m_ny, m_nz into the first line
+    out << "#N " << m_nx << " " << m_ny << " " << m_nz << std::endl;
 
-    for (uint i=0; i<n_x; i++)
+    for (uint i=0; i<m_nx; i++)
     {
-        for (uint j=0; j<n_y; j++)
+        for (uint j=0; j<m_ny; j++)
         {
-            for (uint k=0; k<n_z; k++)
+            for (uint k=0; k<m_nz; k++)
             {
-                out << std::setprecision(10) << i << " " << j << " " << k << " " << x_pos[i+1] << " " << y_pos[j+1] << " " << z_pos[k+1] << " " << data_array[_INDEX(i+1, j+1, k+1)] << std::endl;
+                out << std::setprecision(10) << i << " " << j << " " << k << " " << m_x[i+1] << " " << m_y[j+1] << " " << m_z[k+1] << " " << m_data[_INDEX(i+1, j+1, k+1)] << std::endl;
             }
             out << std::endl;
         }
@@ -223,7 +223,7 @@ void Interpolator3D::export_data_old_format (const std::string& filepath) const
 
     out.close();
 #ifndef _QUIET
-    std::cout << "Finished exporting data_array to file" << std::endl;
+    std::cout << "Finished exporting m_data to file" << std::endl;
 #endif
 }
 
@@ -231,7 +231,7 @@ void Interpolator3D::export_data_old_format (const std::string& filepath) const
 void Interpolator3D::import_data_old_format (const std::string& filepath)
 {
 #ifndef _QUIET
-    std::cout << "Importing data_array IN THE OLD FORMAT from file..." << std::endl;
+    std::cout << "Importing m_data IN THE OLD FORMAT from file..." << std::endl;
 #endif
     std::ifstream in;
     in.open(filepath);
@@ -246,7 +246,7 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
     std::string line;
     std::vector<std::string> line_vec;
 
-    // getting n_x, n_y, n_z from the first line
+    // getting m_nx, m_ny, m_nz from the first line
     std::getline(in, line);
     std::istringstream ss(line);
     std::string element;
@@ -256,18 +256,18 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
     if (line_vec[0] != "#N")
     {
 #ifndef _QUIET
-        std::cerr << "Wrong data_array format, use generate_data() to generate data_array in the desired format. Aborting!" << std::endl;
+        std::cerr << "Wrong m_data format, use generate_data() to generate m_data in the desired format. Aborting!" << std::endl;
 #endif
         exit(54);
     }
 
-    n_x = std::stoi(line_vec[1]);
-    n_y = std::stoi(line_vec[2]);
-    n_z = std::stoi(line_vec[3]);
+    m_nx = std::stoi(line_vec[1]);
+    m_ny = std::stoi(line_vec[2]);
+    m_nz = std::stoi(line_vec[3]);
     
     set_grid(nullptr); // allocate memory for position arrays but leave the position arrays uninitialized
 
-    prepare_data_array();
+    prepare_m_data();
 
     uint i,j,k;
     while (std::getline(in, line))
@@ -284,20 +284,20 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
             j = std::stoi(line_vec[1]);
             k = std::stoi(line_vec[2]);
 
-            x_pos[i+1] = std::stod(line_vec[3]); // these assignments are done unnecessarily often but I cant be bothered to do this smarter
-            y_pos[j+1] = std::stod(line_vec[4]);
-            z_pos[k+1] = std::stod(line_vec[5]);
+            m_x[i+1] = std::stod(line_vec[3]); // these assignments are done unnecessarily often but I cant be bothered to do this smarter
+            m_y[j+1] = std::stod(line_vec[4]);
+            m_z[k+1] = std::stod(line_vec[5]);
 
-            data_array[_INDEX(i+1, j+1, k+1)] = std::stod(line_vec[6]);
+            m_data[_INDEX(i+1, j+1, k+1)] = std::stod(line_vec[6]);
         }
     }
 
     in.close();
 
     set_grid_outermost();
-    set_data_array_outermost();
+    set_m_data_outermost();
 #ifndef _QUIET
-    std::cout << "Finished importing data_array from file" << std::endl;
+    std::cout << "Finished importing m_data from file" << std::endl;
 #endif
 }
 
@@ -320,7 +320,7 @@ void Interpolator3D::export_data (const std::string& filepath) const
     } // TODO fix potential error that might occur when the file gets changed (for example renamed) while already opened by this function
     file_check.close();
 
-    std::cout << "Exporting data_array to file..." << std::endl;
+    std::cout << "Exporting m_data to file..." << std::endl;
 #endif
     std::ofstream out;
     out.open(filepath);
@@ -332,28 +332,28 @@ void Interpolator3D::export_data (const std::string& filepath) const
         exit(52);
     }
 
-    out << "#n " << n_x << " " << n_y << " " << n_z << std::endl; // printing n_x, n_y, n_z into the first line
+    out << "#n " << m_nx << " " << m_ny << " " << m_nz << std::endl; // printing m_nx, m_ny, m_nz into the first line
 
-    for (uint i=0; i<n_x; i++)
-        out << std::setprecision(10) << x_pos[i+1] << std::endl;
-    out << std::endl; // used for detection of where x_pos ends and y_pos starts
+    for (uint i=0; i<m_nx; i++)
+        out << std::setprecision(10) << m_x[i+1] << std::endl;
+    out << std::endl; // used for detection of where m_x ends and m_y starts
 
-    for (uint j=0; j<n_y; j++)
-        out << std::setprecision(10) << y_pos[j+1] << std::endl;
+    for (uint j=0; j<m_ny; j++)
+        out << std::setprecision(10) << m_y[j+1] << std::endl;
     out << std::endl;
 
-    for (uint k=0; k<n_z; k++)
-        out << std::setprecision(10) << z_pos[k+1] << std::endl;
+    for (uint k=0; k<m_nz; k++)
+        out << std::setprecision(10) << m_z[k+1] << std::endl;
     out << std::endl;
 
-    for (uint i=1; i<n_x+1; i++)
-        for (uint j=1; j<n_y+1; j++)
-            for (uint k=1; k<n_z+1; k++)
-                out << std::setprecision(10) << data_array[_INDEX(i, j, k)] << std::endl;
+    for (uint i=1; i<m_nx+1; i++)
+        for (uint j=1; j<m_ny+1; j++)
+            for (uint k=1; k<m_nz+1; k++)
+                out << std::setprecision(10) << m_data[_INDEX(i, j, k)] << std::endl;
 
     out.close();
 #ifndef _QUIET
-    std::cout << "Finished exporting data_array to file" << std::endl;
+    std::cout << "Finished exporting m_data to file" << std::endl;
 #endif
 }
 
@@ -361,7 +361,7 @@ void Interpolator3D::export_data (const std::string& filepath) const
 void Interpolator3D::import_data (const std::string& filepath)
 {
 #ifndef _QUIET
-    std::cout << "Importing data_array from file..." << std::endl;
+    std::cout << "Importing m_data from file..." << std::endl;
 #endif
 
     std::ifstream in;
@@ -377,7 +377,7 @@ void Interpolator3D::import_data (const std::string& filepath)
     std::string line;
     std::vector<std::string> line_vec;
 
-    // getting n_x, n_y, n_z from the first line
+    // getting m_nx, m_ny, m_nz from the first line
     std::getline(in, line);
     std::istringstream ss(line);
     std::string element;
@@ -400,44 +400,44 @@ void Interpolator3D::import_data (const std::string& filepath)
     if (line_vec[0] != "#n")
     {
 #ifndef _QUIET
-        std::cerr << "Wrong data_array format, use generate_data() to generate data_array in the desired format. Aborting!" << std::endl;
+        std::cerr << "Wrong m_data format, use generate_data() to generate m_data in the desired format. Aborting!" << std::endl;
 #endif
         exit(54);
     }
 
-    n_x = std::stoi(line_vec[1]);
-    n_y = std::stoi(line_vec[2]);
-    n_z = std::stoi(line_vec[3]);
+    m_nx = std::stoi(line_vec[1]);
+    m_ny = std::stoi(line_vec[2]);
+    m_nz = std::stoi(line_vec[3]);
     
     set_grid(nullptr); // allocate memory for position arrays but leave the position arrays uninitialized
 
-    prepare_data_array();
+    prepare_m_data();
 
     uint i(0), j(0), k(0);
     while (std::getline(in, line) && line != "")
-        x_pos[++i] = std::stod(line);
+        m_x[++i] = std::stod(line);
 
     while (std::getline(in, line) && line != "")
-        y_pos[++j] = std::stod(line);
+        m_y[++j] = std::stod(line);
     
     while (std::getline(in, line) && line != "")
-        z_pos[++k] = std::stod(line);
+        m_z[++k] = std::stod(line);
 
     set_grid_outermost();
 
-    for (i=1; i<n_x+1; i++)
-        for (j=1; j<n_y+1; j++)
-            for (k=1; k<n_z+1; k++)
+    for (i=1; i<m_nx+1; i++)
+        for (j=1; j<m_ny+1; j++)
+            for (k=1; k<m_nz+1; k++)
             {
                 std::getline(in, line);
-                data_array[_INDEX(i, j, k)] = std::stod(line);
+                m_data[_INDEX(i, j, k)] = std::stod(line);
             }
 
     in.close();
 
-    set_data_array_outermost();
+    set_m_data_outermost();
 #ifndef _QUIET
-    std::cout << "Finished importing data_array from file" << std::endl;
+    std::cout << "Finished importing m_data from file" << std::endl;
 #endif
 }
 
@@ -445,19 +445,19 @@ void Interpolator3D::import_data (const std::string& filepath)
 void Interpolator3D::generate_data (std::function<double (double,double,double)> func, const DataGenerationConfig* config, bool progress_monitor)
 {
     set_grid(config);
-    prepare_data_array();
+    prepare_m_data();
 
-    ProgressMonitor pm(n_x);
+    ProgressMonitor pm(m_nx);
 
-    // filling data_array with function values
+    // filling m_data with function values
     #pragma omp parallel for ordered
-    for (uint i=1; i<n_x+1; i++)
+    for (uint i=1; i<m_nx+1; i++)
     {
-        for (uint j=1; j<n_y+1; j++)
+        for (uint j=1; j<m_ny+1; j++)
         {
-            for (uint k=1; k<n_z+1; k++)
+            for (uint k=1; k<m_nz+1; k++)
             {
-                data_array[_INDEX(i, j, k)] = func(x_pos[i], y_pos[j], z_pos[k]);
+                m_data[_INDEX(i, j, k)] = func(m_x[i], m_y[j], m_z[k]);
             }
         }
 #ifndef _QUIET
@@ -469,34 +469,34 @@ void Interpolator3D::generate_data (std::function<double (double,double,double)>
 #endif
     }
 
-    set_data_array_outermost();
+    set_m_data_outermost();
 }
 
 
 void Interpolator3D::find_closest_lower_data_point(int& i_0, int& j_0, int& k_0, double& x, double& y, double& z) const
 {
-    i_0 = find_index(x_pos+1, n_x, x);
-    j_0 = find_index(y_pos+1, n_y, y);
-    k_0 = find_index(z_pos+1, n_z, z);
+    i_0 = find_index(m_x+1, m_nx, x);
+    j_0 = find_index(m_y+1, m_ny, y);
+    k_0 = find_index(m_z+1, m_nz, z);
 
-    ++i_0; // to account for the outermost values
-    ++j_0;
-    ++k_0;
+    // ++i_0; // +1 removed here and added everywhere in interpolation functions
+    // ++j_0;
+    // ++k_0;
 
-    if (x<x_pos[1])
-        x = x_pos[1];
-    else if (x>x_pos[n_x])
-        x = x_pos[n_x];
+    if (x<m_x[1])
+        x = m_x[1];
+    else if (x>m_x[m_nx])
+        x = m_x[m_nx];
 
-    if (y<y_pos[1])
-        y = y_pos[1];
-    else if (y>y_pos[n_y])
-        y = y_pos[n_y];
+    if (y<m_y[1])
+        y = m_y[1];
+    else if (y>m_y[m_ny])
+        y = m_y[m_ny];
 
-    if (z<z_pos[1])
-        z = z_pos[1];
-    else if (z>z_pos[n_z])
-        z = z_pos[n_z];
+    if (z<m_z[1])
+        z = m_z[1];
+    else if (z>m_z[m_nz])
+        z = m_z[m_nz];
 }
 
 
@@ -572,25 +572,24 @@ double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, d
     {
         for (int j=0; j<4; j++)
         {
-            p_z_0[i][j] = data_array[_INDEX(i+i_0-1, j+j_0-1, k_0)];
-            p_z_1[i][j] = data_array[_INDEX(i+i_0-1, j+j_0-1, k_0+1)];
+            p_z_0[i][j] = m_data[_INDEX(i+i_0, j+j_0, k_0+1)];
+            p_z_1[i][j] = m_data[_INDEX(i+i_0, j+j_0, k_0+2)];
         }
     }
 
     double t_x[4];
     double t_y[4];
     for (int i=0; i<4; i++)
-    {
-        t_x[i] = x_pos[i+i_0-1];
-        t_y[i] = y_pos[i+j_0-1];
-    }
+        t_x[i] = m_x[i+i_0];
+    for (int i=0; i<4; i++)
+        t_y[i] = m_y[i+j_0];
 
     double one_div_t_x_2_t_x_1 = 1.0/(t_x[2]-t_x[1]); // this looks like this because of performance advantages
     double one_div_t_y_2_t_y_1 = 1.0/(t_y[2]-t_y[1]);
 
     x = (x-t_x[1])*one_div_t_x_2_t_x_1;
     y = (y-t_y[1])*one_div_t_y_2_t_y_1;
-    z = (z-z_pos[k_0])/(z_pos[k_0+1]-z_pos[k_0]);
+    z = (z-m_z[k_0])/(m_z[k_0+1]-m_z[k_0]);
 
     t_x[0] = (t_x[0]-t_x[1])*one_div_t_x_2_t_x_1;
     t_x[3] = (t_x[3]-t_x[1])*one_div_t_x_2_t_x_1;
@@ -605,9 +604,7 @@ double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, d
     double bicbuic_result_0 = bicubic_interpolate(p_z_0, t_x, t_y, x, y);
     double bicbuic_result_1 = bicubic_interpolate(p_z_1, t_x, t_y, x, y);
 
-    double bicubic_unilinear_result = bicbuic_result_0+z*(bicbuic_result_1-bicbuic_result_0);
-
-    return bicubic_unilinear_result;
+    return bicbuic_result_0+z*(bicbuic_result_1-bicbuic_result_0);
 }
 
 
@@ -622,18 +619,18 @@ double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) 
     for (int i=0; i<4; i++)
         for (int j=0; j<4; j++)
             for (int k=0; k<4; k++)
-                p[i][j][k] = data_array[_INDEX(i+i_0-1, j+j_0-1, k+k_0-1)];
+                p[i][j][k] = m_data[_INDEX(i+i_0, j+j_0, k+k_0)];
 
     double t_x[4];
     double t_y[4];
     double t_z[4];
 
     for (int i=0; i<4; i++)
-    {
-        t_x[i] = x_pos[i+i_0-1];
-        t_y[i] = y_pos[i+j_0-1];
-        t_z[i] = z_pos[i+k_0-1];
-    }
+        t_x[i] = m_x[i+i_0];
+    for (int i=0; i<4; i++)
+        t_y[i] = m_y[i+j_0];
+    for (int i=0; i<4; i++)
+        t_z[i] = m_z[i+k_0];
 
     double one_div_t_x_2_m_t_x_1 = 1.0/(t_x[2]-t_x[1]); // this looks like this because of performance advantages
     double one_div_t_y_2_m_t_y_1 = 1.0/(t_y[2]-t_y[1]);
@@ -658,26 +655,7 @@ double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) 
     t_z[1] = 0.0;
     t_z[2] = 1.0;
 
-    double tricubic_result = tricubic_interpolate(p, t_x, t_y, t_z, x, y, z);
-
-    return tricubic_result;
-}
-
-
-double Interpolator3D::operator() (double x, double y, double z, InterpolationType type) const
-{
-    switch (type)
-    {
-        case BicubicUnilinear:
-            return get_interp_value_bicubic_unilinear(x, y, z);
-        break;
-
-        case Tricubic: // fallthrough
-
-        default:
-            return get_interp_value_tricubic(x, y, z);
-        break;
-    }
+    return tricubic_interpolate(p, t_x, t_y, t_z, x, y, z);
 }
 
 
@@ -693,18 +671,34 @@ Interpolator3D::Interpolator3D (const std::string& filepath)
 
 
 Interpolator3D::Interpolator3D (const Interpolator3D& other)
+    : m_nx(other.m_nx)
+    , m_ny(other.m_ny)
+    , m_nz(other.m_nz)
 {
-    n_x = other.n_x;
-    n_y = other.n_y;
-    n_z = other.n_z;
 
-    prepare_data_array();
+    prepare_m_data();
     set_grid(nullptr);
 
-    std::copy(other.data_array, other.data_array+(n_x+3)*(n_y+3)*(n_z+3), data_array);
-    std::copy(other.x_pos, other.x_pos+n_x+3, x_pos);
-    std::copy(other.y_pos, other.y_pos+n_y+3, y_pos);
-    std::copy(other.z_pos, other.z_pos+n_z+3, z_pos);
+    std::copy(other.m_data, other.m_data+(m_nx+3)*(m_ny+3)*(m_nz+3), m_data);
+    std::copy(other.m_x, other.m_x+m_nx+3, m_x);
+    std::copy(other.m_y, other.m_y+m_ny+3, m_y);
+    std::copy(other.m_z, other.m_z+m_nz+3, m_z);
+}
+
+
+Interpolator3D::Interpolator3D (Interpolator3D&& other)
+    : m_nx(other.m_nx)
+    , m_ny(other.m_ny)
+    , m_nz(other.m_nz)
+    , m_data(other.m_data)
+    , m_x(other.m_x)
+    , m_y(other.m_y)
+    , m_z(other.m_z)
+{
+    other.m_data = nullptr;
+    other.m_x = nullptr;
+    other.m_y = nullptr;
+    other.m_z = nullptr;
 }
 
 
@@ -713,17 +707,17 @@ Interpolator3D& Interpolator3D::operator= (const Interpolator3D& other)
     if (this==&other)
         return *this;
 
-    n_x = other.n_x;
-    n_y = other.n_y;
-    n_z = other.n_z;
+    m_nx = other.m_nx;
+    m_ny = other.m_ny;
+    m_nz = other.m_nz;
 
-    prepare_data_array();
+    prepare_m_data();
     set_grid(nullptr);
 
-    std::copy(other.data_array, other.data_array+(n_x+3)*(n_y+3)*(n_z+3), data_array);
-    std::copy(other.x_pos, other.x_pos+n_x+3, x_pos);
-    std::copy(other.y_pos, other.y_pos+n_y+3, y_pos);
-    std::copy(other.z_pos, other.z_pos+n_z+3, z_pos);
+    std::copy(other.m_data, other.m_data+(m_nx+3)*(m_ny+3)*(m_nz+3), m_data);
+    std::copy(other.m_x, other.m_x+m_nx+3, m_x);
+    std::copy(other.m_y, other.m_y+m_ny+3, m_y);
+    std::copy(other.m_z, other.m_z+m_nz+3, m_z);
 
     return *this;
 }
@@ -736,10 +730,10 @@ Interpolator3D& Interpolator3D::operator= (Interpolator3D&& other)
 
     std::copy(&other, &other+1, this);
 
-    other.data_array = nullptr;
-    other.x_pos = nullptr;
-    other.y_pos = nullptr;
-    other.z_pos = nullptr;
+    other.m_data = nullptr;
+    other.m_x = nullptr;
+    other.m_y = nullptr;
+    other.m_z = nullptr;
 
     return *this;
 }
@@ -749,7 +743,7 @@ Interpolator3D::~Interpolator3D()
 {
     safe_delete_grid();
     
-    safe_delete_data_array();
+    safe_delete_m_data();
 }
 
 

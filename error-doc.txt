@@ -1,5 +1,5 @@
 #error number, meaning
-50, bad data_array alloc
+50, bad data alloc
 51, bad grid alloc
 52, could not open file for data export
 53, could not open file for data import
