@@ -33,6 +33,19 @@ enum InterpolationType
 };
 
 
+struct Coeffs
+{
+private:
+    double m_coeffs[64];
+
+public:
+    inline double& operator[](uint i)
+    {
+        return m_coeffs[i];
+    }
+};
+
+
 class Interpolator3D
 {
 protected:
@@ -40,23 +53,29 @@ protected:
     uint m_nx = 0;
     uint m_ny = 0;
     uint m_nz = 0;
+    double m_tx[2] = {0.0, 0.0}; // step growth factor (when data is generated or read from file)
+    double m_ty[2] = {0.0, 0.0};
+    double m_tz[2] = {0.0, 0.0};
     double* m_data = nullptr;
+    Coeffs* m_cached_coeffs = nullptr;
     double* m_x = nullptr;
     double* m_y = nullptr;
     double* m_z = nullptr;
 
 public:
 
+    static double step_growth_factor(double k);
     void generate_data(std::function<double (double,double,double)> func, const DataGenerationConfig* config, bool progress_monitor);
     void export_data_old_format(const std::string& filepath) const;
     void import_data_old_format(const std::string& filepath);
     void export_data (const std::string& filepath) const;
     void import_data(const std::string& filepath);
-    static double unicubic_interpolate(double p[4], double t_z[4], double z);
-    static double bicubic_interpolate(double p[4][4], double t_y[4], double t_z[4], double y, double z);
-    static double tricubic_interpolate(double p[4][4][4], double t_x[4], double t_y[4], double t_z[4], double x, double y, double z);
+    static double unicubic_interpolate(double p[4], double t_z[2], double z);
+    static double bicubic_interpolate(double p[4][4], double t_y[2], double t_z[2], double y, double z);
+    static double tricubic_interpolate(double p[4][4][4], double t_x[2], double t_y[2], double t_z[2], double x, double y, double z);
     double get_interp_value_tricubic(double x, double y, double z) const;
     double get_interp_value_bicubic_unilinear(double x, double y, double z) const;
+    double coeff_interp(double x, double y, double z) const;
     
     constexpr double operator() (double x, double y, double z, InterpolationType type = BicubicUnilinear) const
     {
@@ -87,9 +106,15 @@ protected:
     void safe_delete_grid();
     void set_grid(const DataGenerationConfig* config);
     void set_grid_outermost();
-    void set_m_data_outermost();
-    void safe_delete_m_data();
-    void prepare_m_data();
+    void set_data_outermost();
+    void safe_delete_data();
+    void prepare_data();
+    void prepare_cached_coeffs();
+    void safe_delete_cached_coeffs();
+    void cache_coeffs();
+    void set_single_cell_coeffs(uint i_0, uint j_0, uint k_0);
+    static double A(Coeffs& coeffs, uint i, uint j, double z, double z2, double z3);
+    static double B(Coeffs& coeffs, uint i, double y, double y2, double y3, double z, double z2, double z3);
     double pos_of_grid_point(Dir dir, int index, const DataGenerationConfig* config) const;
     void find_closest_lower_data_point(int& i_0, int& j_0, int& k_0, double& x, double& y, double& z) const;
     static uint find_index(double* arr, int size, double x);
