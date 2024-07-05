@@ -9,7 +9,7 @@
 
 enum class Dir : unsigned char
 {
-    x, y, z
+    X, Y, Z
 };
 
 
@@ -48,7 +48,7 @@ public:
 
 class Interpolator3D
 {
-protected:
+public:
 
     uint m_nx = 0;
     uint m_ny = 0;
@@ -68,14 +68,16 @@ public:
     void generate_data(std::function<double (double,double,double)> func, const DataGenerationConfig* config, bool progress_monitor);
     void export_data_old_format(const std::string& filepath) const;
     void import_data_old_format(const std::string& filepath);
-    void export_data (const std::string& filepath) const;
+    void export_data_plain_text(const std::string& filepath) const;
+    void import_data_plain_text(const std::string& filepath);
+    void export_data(const std::string& filepath) const;
     void import_data(const std::string& filepath);
     static double unicubic_interpolate(double p[4], double t_z[2], double z);
     static double bicubic_interpolate(double p[4][4], double t_y[2], double t_z[2], double y, double z);
     static double tricubic_interpolate(double p[4][4][4], double t_x[2], double t_y[2], double t_z[2], double x, double y, double z);
     double get_interp_value_tricubic(double x, double y, double z) const;
+    double get_interp_value_tricubic_old(double x, double y, double z) const;
     double get_interp_value_bicubic_unilinear(double x, double y, double z) const;
-    double coeff_interp(double x, double y, double z) const;
     
     constexpr double operator() (double x, double y, double z, InterpolationType type = BicubicUnilinear) const
     {

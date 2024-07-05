@@ -6,3 +6,4 @@
 54, wrong data format recognized in data import
 55, no interpolation type specified in functor call
 56, bad cached coeffs grid alloc
+57, interpolator is not setup but data export was attempted
