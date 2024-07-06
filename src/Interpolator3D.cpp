@@ -873,7 +873,7 @@ double Interpolator3D::get_interp_value_tricubic_old (double x, double y, double
     double t_y[2];
     for (int i=0; i<4; i++)
         t[i] = m_y[i+j_0];
-    double one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
+    one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
     y = (y-t[1])*one_div_t_2_m_t_1;
     t_y[0] = (t[0]-t[1])*one_div_t_2_m_t_1;
     t_y[1] = (t[3]-t[1])*one_div_t_2_m_t_1;
@@ -881,7 +881,7 @@ double Interpolator3D::get_interp_value_tricubic_old (double x, double y, double
     double t_z[2];
     for (int i=0; i<4; i++)
         t[i] = m_z[i+k_0];
-    double one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
+    one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
     z = (z-t[1])*one_div_t_2_m_t_1;
     t_z[0] = (t[0]-t[1])*one_div_t_2_m_t_1;
     t_z[1] = (t[3]-t[1])*one_div_t_2_m_t_1;
