@@ -42,6 +42,7 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
         break;
 
         case Dir::Z:
+        default:
             grid_spacing = config->z_grid_spacing;
             n = config->nz;
             min = config->z_min;
