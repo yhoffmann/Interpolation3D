@@ -105,6 +105,134 @@ void Interpolator3D::cache_coeffs()
 }
 
 
+void Interpolator3D::set_single_cell_coeffs(uint i_0, uint j_0, uint k_0)
+{
+    double p[4][4][4];
+
+    for (int i=0; i<4; i++)
+        for (int j=0; j<4; j++)
+            for (int k=0; k<4; k++)
+                p[i][j][k] = m_data[_INDEX(i+i_0, j+j_0, k+k_0)];
+
+    double tx[4];
+    double ty[4];
+    double tz[4];
+    for (uint i=0; i<4; i++)
+    {
+        tx[i] = m_x[i_0+i];
+        ty[i] = m_y[j_0+i];
+        tz[i] = m_z[k_0+i];
+    }
+
+    tx[0] = (tx[0]-tx[1])/(tx[2]-tx[1]);
+    tx[3] = (tx[3]-tx[1])/(tx[2]-tx[1]);
+    double one_div_dx2 = 1.0/(1.0-tx[0]);
+    double one_div_dx3 = 1.0/tx[3];
+
+    ty[0] = (ty[0]-ty[1])/(ty[2]-ty[1]);
+    ty[3] = (ty[3]-ty[1])/(ty[2]-ty[1]);
+    double one_div_dy2 = 1.0/(1.0-ty[0]);
+    double one_div_dy3 = 1.0/ty[3];
+
+    tz[0] = (tz[0]-tz[1])/(tz[2]-tz[1]);
+    tz[3] = (tz[3]-tz[1])/(tz[2]-tz[1]);
+    double one_div_dz2 = 1.0/(1.0-tz[0]);
+    double one_div_dz3 = 1.0/tz[3];
+
+    // coeffs = COEFF_MATRIX * b
+    Coeffs b;
+
+    // values
+    b[0] = p[1][1][1];
+    b[1] = p[2][1][1];
+    b[2] = p[1][2][1];
+    b[3] = p[2][2][1];
+    b[4] = p[1][1][2];
+    b[5] = p[2][1][2];
+    b[6] = p[1][2][2];
+    b[7] = p[2][2][2];
+
+    // partial x derivatives
+    b[ 8] = (p[2][1][1]-p[0][1][1])*one_div_dx2;
+    b[ 9] = (p[3][1][1]-p[1][1][1])*one_div_dx3;
+    b[10] = (p[2][2][1]-p[0][2][1])*one_div_dx2;
+    b[11] = (p[3][2][1]-p[1][2][1])*one_div_dx3;
+    b[12] = (p[2][1][2]-p[0][1][2])*one_div_dx2;
+    b[13] = (p[3][1][2]-p[1][1][2])*one_div_dx3;
+    b[14] = (p[2][2][2]-p[0][2][2])*one_div_dx2;
+    b[15] = (p[3][2][2]-p[1][2][2])*one_div_dx3;
+
+    // partial y derivatives
+    b[16] = (p[1][2][1]-p[1][0][1])*one_div_dy2;
+    b[17] = (p[2][2][1]-p[2][0][1])*one_div_dy2;
+    b[18] = (p[1][3][1]-p[1][1][1])*one_div_dy3;
+    b[19] = (p[2][3][1]-p[2][1][1])*one_div_dy3;
+    b[20] = (p[1][2][2]-p[1][0][2])*one_div_dy2;
+    b[21] = (p[2][2][2]-p[2][0][2])*one_div_dy2;
+    b[22] = (p[1][3][2]-p[1][1][2])*one_div_dy3;
+    b[23] = (p[2][3][2]-p[2][1][2])*one_div_dy3;
+
+    // partial z derivatives
+    b[24] = (p[1][1][2]-p[1][1][0])*one_div_dz2;
+    b[25] = (p[2][1][2]-p[2][1][0])*one_div_dz2;
+    b[26] = (p[1][2][2]-p[1][2][0])*one_div_dz2;
+    b[27] = (p[2][2][2]-p[2][2][0])*one_div_dz2;
+    b[28] = (p[1][1][3]-p[1][1][1])*one_div_dz3;
+    b[29] = (p[2][1][3]-p[2][1][1])*one_div_dz3;
+    b[30] = (p[1][2][3]-p[1][2][1])*one_div_dz3;
+    b[31] = (p[2][2][3]-p[2][2][1])*one_div_dz3;
+
+    // partial xy derivatives
+    b[32] = (p[2][2][1]-p[2][0][1]-(p[0][2][1]-p[0][0][1]))*one_div_dx2*one_div_dy2;
+    b[33] = (p[3][2][1]-p[3][0][1]-(p[1][2][1]-p[1][0][1]))*one_div_dx3*one_div_dy2;
+    b[34] = (p[2][3][1]-p[2][1][1]-(p[0][3][1]-p[0][1][1]))*one_div_dx2*one_div_dy3;
+    b[35] = (p[3][3][1]-p[3][1][1]-(p[1][3][1]-p[1][1][1]))*one_div_dx3*one_div_dy3;
+    b[36] = (p[2][2][2]-p[2][0][2]-(p[0][2][2]-p[0][0][2]))*one_div_dx2*one_div_dy2;
+    b[37] = (p[3][2][2]-p[3][0][2]-(p[1][2][2]-p[1][0][2]))*one_div_dx3*one_div_dy2;
+    b[38] = (p[2][3][2]-p[2][1][2]-(p[0][3][2]-p[0][1][2]))*one_div_dx2*one_div_dy3;
+    b[39] = (p[3][3][2]-p[3][1][2]-(p[1][3][2]-p[1][1][2]))*one_div_dx3*one_div_dy3;
+
+    // partial xz derivatives
+    b[40] = (p[2][1][2]-p[2][1][0]-(p[0][1][2]-p[0][1][0]))*one_div_dx2*one_div_dz2;
+    b[41] = (p[3][1][2]-p[3][1][0]-(p[1][1][2]-p[1][1][0]))*one_div_dx3*one_div_dz2;
+    b[42] = (p[2][2][2]-p[2][2][0]-(p[0][2][2]-p[0][2][0]))*one_div_dx2*one_div_dz2;
+    b[43] = (p[3][2][2]-p[3][2][0]-(p[1][2][2]-p[1][2][0]))*one_div_dx3*one_div_dz2;
+    b[44] = (p[2][1][3]-p[2][1][1]-(p[0][1][3]-p[0][1][1]))*one_div_dx2*one_div_dz3;
+    b[45] = (p[3][1][3]-p[3][1][1]-(p[1][1][3]-p[1][1][1]))*one_div_dx3*one_div_dz3;
+    b[46] = (p[2][2][3]-p[2][2][1]-(p[0][2][3]-p[0][2][1]))*one_div_dx2*one_div_dz3;
+    b[47] = (p[3][2][3]-p[3][2][1]-(p[1][2][3]-p[1][2][1]))*one_div_dx3*one_div_dz3;
+
+    // partial yz derivatives
+    b[48] = (p[1][2][2]-p[1][2][0]-(p[1][0][2]-p[1][0][0]))*one_div_dy2*one_div_dz2;
+    b[49] = (p[2][2][2]-p[2][2][0]-(p[2][0][2]-p[2][0][0]))*one_div_dy2*one_div_dz2;
+    b[50] = (p[1][3][2]-p[1][3][0]-(p[1][1][2]-p[1][1][0]))*one_div_dy3*one_div_dz2;
+    b[51] = (p[2][3][2]-p[2][3][0]-(p[2][1][2]-p[2][1][0]))*one_div_dy3*one_div_dz2;
+    b[52] = (p[1][2][3]-p[1][2][1]-(p[1][0][3]-p[1][0][1]))*one_div_dy2*one_div_dz3;
+    b[53] = (p[2][2][3]-p[2][2][1]-(p[2][0][3]-p[2][0][1]))*one_div_dy2*one_div_dz3;
+    b[54] = (p[1][3][3]-p[1][3][1]-(p[1][1][3]-p[1][1][1]))*one_div_dy3*one_div_dz3;
+    b[55] = (p[2][3][3]-p[2][3][1]-(p[2][1][3]-p[2][1][1]))*one_div_dy3*one_div_dz3;
+
+    // partial xyz derivatives
+    b[56] = (p[2][2][2]-p[2][2][0]-(p[2][0][2]-p[2][0][0])-(p[0][2][2]-p[0][2][0])+(p[0][0][2]-p[0][0][0]))*one_div_dx2*one_div_dy2*one_div_dz2;
+    b[57] = (p[3][2][2]-p[3][2][0]-(p[3][0][2]-p[3][0][0])-(p[1][2][2]-p[1][2][0])+(p[1][0][2]-p[1][0][0]))*one_div_dx3*one_div_dy2*one_div_dz2;
+    b[58] = (p[2][3][2]-p[2][3][0]-(p[2][1][2]-p[2][1][0])-(p[0][3][2]-p[0][3][0])+(p[0][1][2]-p[0][1][0]))*one_div_dx2*one_div_dy3*one_div_dz2;
+    b[59] = (p[3][3][2]-p[3][3][0]-(p[3][1][2]-p[3][1][0])-(p[1][3][2]-p[1][3][0])+(p[1][1][2]-p[1][1][0]))*one_div_dx3*one_div_dy3*one_div_dz2;
+    b[60] = (p[2][2][3]-p[2][2][1]-(p[2][0][3]-p[2][0][1])-(p[0][2][3]-p[0][2][1])+(p[0][0][3]-p[0][0][1]))*one_div_dx2*one_div_dy2*one_div_dz3;
+    b[61] = (p[3][2][3]-p[3][2][1]-(p[3][0][3]-p[3][0][1])-(p[1][2][3]-p[1][2][1])+(p[1][0][3]-p[1][0][1]))*one_div_dx3*one_div_dy2*one_div_dz3;
+    b[62] = (p[2][3][3]-p[2][3][1]-(p[2][1][3]-p[2][1][1])-(p[0][3][3]-p[0][3][1])+(p[0][1][3]-p[0][1][1]))*one_div_dx2*one_div_dy3*one_div_dz3;
+    b[63] = (p[3][3][3]-p[3][3][1]-(p[3][1][3]-p[3][1][1])-(p[1][3][3]-p[1][3][1])+(p[1][1][3]-p[1][1][1]))*one_div_dx3*one_div_dy3*one_div_dz3;
+
+    for (uint i=0; i<64; i++)
+    {
+        double element = 0.0;
+        for (uint j=0; j<64; j++)
+            element += COEFF_MATRIX[i][j]*b[j];
+
+        m_cached_coeffs[i_0*m_ny*m_nz+j_0*m_nz+k_0][i] = element;
+    }
+}
+
+
 void Interpolator3D::safe_delete_grid()
 {
     if (m_x)
@@ -708,14 +836,10 @@ double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, d
     z = (z-m_z[k_0])/(m_z[k_0+1]-m_z[k_0]);
 
     t_x[0] = (t_x[0]-t_x[1])*one_div_t_x_2_t_x_1;
-    t_x[3] = (t_x[3]-t_x[1])*one_div_t_x_2_t_x_1;
-    t_x[1] = 0.0;
-    t_x[2] = 1.0;
+    t_x[1] = (t_x[3]-t_x[1])*one_div_t_x_2_t_x_1;
 
     t_y[0] = (t_y[0]-t_y[1])*one_div_t_y_2_t_y_1;
-    t_y[3] = (t_y[3]-t_y[1])*one_div_t_y_2_t_y_1;
-    t_y[1] = 0.0;
-    t_y[2] = 1.0;
+    t_y[1] = (t_y[3]-t_y[1])*one_div_t_y_2_t_y_1;
 
     double bicbuic_result_0 = bicubic_interpolate(p_z_0, t_x, t_y, x, y);
     double bicbuic_result_1 = bicubic_interpolate(p_z_1, t_x, t_y, x, y);
@@ -738,191 +862,31 @@ double Interpolator3D::get_interp_value_tricubic_old (double x, double y, double
                 p[i][j][k] = m_data[_INDEX(i+i_0, j+j_0, k+k_0)];
 
     double t_x[2];
-    if (m_tx[0] == 0.0)
-    {
-        double t[4];
-        for (int i=0; i<4; i++)
-            t[i] = m_x[i+i_0];
-        
-        double one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
-        x = (x-t[1])*one_div_t_2_m_t_1;
-        t_x[0] = (t[0]-t[1])*one_div_t_2_m_t_1;
-        t_x[1] = (t[3]-t[1])*one_div_t_2_m_t_1;
-    }
-    else
-    {// TODO check this
-        x = (x-m_x[i_0+1])/(m_x[i_0+2]-m_x[i_0+1]);
-        t_x[0] = m_tx[0];
-        t_x[1] = m_tx[1];
-    }
+    double t[4];
+    for (int i=0; i<4; i++)
+        t[i] = m_x[i+i_0];
+    double one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
+    x = (x-t[1])*one_div_t_2_m_t_1;
+    t_x[0] = (t[0]-t[1])*one_div_t_2_m_t_1;
+    t_x[1] = (t[3]-t[1])*one_div_t_2_m_t_1;
 
     double t_y[2];
-    if (m_ty[0] == 0.0)
-    {
-        double t[4];
-        for (int i=0; i<4; i++)
-            t[i] = m_y[i+j_0];
-        
-        double one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
-        y = (y-t[1])*one_div_t_2_m_t_1;
-        t_y[0] = (t[0]-t[1])*one_div_t_2_m_t_1;
-        t_y[1] = (t[3]-t[1])*one_div_t_2_m_t_1;
-    }
-    else
-    {
-        y = (y-m_y[j_0+1])/(m_y[j_0+2]-m_y[j_0+1]);
-        t_y[0] = m_ty[0];
-        t_y[1] = m_ty[1];
-    }
+    for (int i=0; i<4; i++)
+        t[i] = m_y[i+j_0];
+    double one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
+    y = (y-t[1])*one_div_t_2_m_t_1;
+    t_y[0] = (t[0]-t[1])*one_div_t_2_m_t_1;
+    t_y[1] = (t[3]-t[1])*one_div_t_2_m_t_1;
 
     double t_z[2];
-    if (m_tz[0] == 0.0)
-    {
-        double t[4];
-        for (int i=0; i<4; i++)
-            t[i] = m_z[i+k_0];
-        
-        double one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
-        z = (z-t[1])*one_div_t_2_m_t_1;
-        t_z[0] = (t[0]-t[1])*one_div_t_2_m_t_1;
-        t_z[1] = (t[3]-t[1])*one_div_t_2_m_t_1;
-    }
-    else
-    {
-        z = (z-m_z[k_0+1])/(m_z[k_0+2]-m_z[k_0+1]);
-        t_z[0] = m_tz[0];
-        t_z[1] = m_tz[1];
-    }
+    for (int i=0; i<4; i++)
+        t[i] = m_z[i+k_0];
+    double one_div_t_2_m_t_1 = 1.0/(t[2]-t[1]);
+    z = (z-t[1])*one_div_t_2_m_t_1;
+    t_z[0] = (t[0]-t[1])*one_div_t_2_m_t_1;
+    t_z[1] = (t[3]-t[1])*one_div_t_2_m_t_1;
 
     return tricubic_interpolate(p, t_x, t_y, t_z, x, y, z);
-}
-
-
-void Interpolator3D::set_single_cell_coeffs(uint i_0, uint j_0, uint k_0)
-{
-    double p[4][4][4];
-
-    for (int i=0; i<4; i++)
-        for (int j=0; j<4; j++)
-            for (int k=0; k<4; k++)
-                p[i][j][k] = m_data[_INDEX(i+i_0, j+j_0, k+k_0)];
-
-    double tx[4];
-    double ty[4];
-    double tz[4];
-    for (uint i=0; i<4; i++)
-    {
-        tx[i] = m_x[i_0+i];
-        ty[i] = m_y[j_0+i];
-        tz[i] = m_z[k_0+i];
-    }
-
-    tx[0] = (tx[0]-tx[1])/(tx[2]-tx[1]);
-    tx[3] = (tx[3]-tx[1])/(tx[2]-tx[1]);
-    double one_div_dx2 = 1.0/(1.0-tx[0]);
-    double one_div_dx3 = 1.0/tx[3];
-
-    ty[0] = (ty[0]-ty[1])/(ty[2]-ty[1]);
-    ty[3] = (ty[3]-ty[1])/(ty[2]-ty[1]);
-    double one_div_dy2 = 1.0/(1.0-ty[0]);
-    double one_div_dy3 = 1.0/ty[3];
-
-    tz[0] = (tz[0]-tz[1])/(tz[2]-tz[1]);
-    tz[3] = (tz[3]-tz[1])/(tz[2]-tz[1]);
-    double one_div_dz2 = 1.0/(1.0-tz[0]);
-    double one_div_dz3 = 1.0/tz[3];
-
-    // coeffs = COEFF_MATRIX * b
-    Coeffs b;
-
-    // values
-    b[0] = p[1][1][1];
-    b[1] = p[2][1][1];
-    b[2] = p[1][2][1];
-    b[3] = p[2][2][1];
-    b[4] = p[1][1][2];
-    b[5] = p[2][1][2];
-    b[6] = p[1][2][2];
-    b[7] = p[2][2][2];
-
-    // partial x derivatives
-    b[ 8] = (p[2][1][1]-p[0][1][1])*one_div_dx2;
-    b[ 9] = (p[3][1][1]-p[1][1][1])*one_div_dx3;
-    b[10] = (p[2][2][1]-p[0][2][1])*one_div_dx2;
-    b[11] = (p[3][2][1]-p[1][2][1])*one_div_dx3;
-    b[12] = (p[2][1][2]-p[0][1][2])*one_div_dx2;
-    b[13] = (p[3][1][2]-p[1][1][2])*one_div_dx3;
-    b[14] = (p[2][2][2]-p[0][2][2])*one_div_dx2;
-    b[15] = (p[3][2][2]-p[1][2][2])*one_div_dx3;
-
-    // partial y derivatives
-    b[16] = (p[1][2][1]-p[1][0][1])*one_div_dy2;
-    b[17] = (p[2][2][1]-p[2][0][1])*one_div_dy2;
-    b[18] = (p[1][3][1]-p[1][1][1])*one_div_dy3;
-    b[19] = (p[2][3][1]-p[2][1][1])*one_div_dy3;
-    b[20] = (p[1][2][2]-p[1][0][2])*one_div_dy2;
-    b[21] = (p[2][2][2]-p[2][0][2])*one_div_dy2;
-    b[22] = (p[1][3][2]-p[1][1][2])*one_div_dy3;
-    b[23] = (p[2][3][2]-p[2][1][2])*one_div_dy3;
-
-    // partial z derivatives
-    b[24] = (p[1][1][2]-p[1][1][0])*one_div_dz2;
-    b[25] = (p[2][1][2]-p[2][1][0])*one_div_dz2;
-    b[26] = (p[1][2][2]-p[1][2][0])*one_div_dz2;
-    b[27] = (p[2][2][2]-p[2][2][0])*one_div_dz2;
-    b[28] = (p[1][1][3]-p[1][1][1])*one_div_dz3;
-    b[29] = (p[2][1][3]-p[2][1][1])*one_div_dz3;
-    b[30] = (p[1][2][3]-p[1][2][1])*one_div_dz3;
-    b[31] = (p[2][2][3]-p[2][2][1])*one_div_dz3;
-
-    // partial xy derivatives
-    b[32] = (p[2][2][1]-p[2][0][1]-(p[0][2][1]-p[0][0][1]))*one_div_dx2*one_div_dy2;
-    b[33] = (p[3][2][1]-p[3][0][1]-(p[1][2][1]-p[1][0][1]))*one_div_dx3*one_div_dy2;
-    b[34] = (p[2][3][1]-p[2][1][1]-(p[0][3][1]-p[0][1][1]))*one_div_dx2*one_div_dy3;
-    b[35] = (p[3][3][1]-p[3][1][1]-(p[1][3][1]-p[1][1][1]))*one_div_dx3*one_div_dy3;
-    b[36] = (p[2][2][2]-p[2][0][2]-(p[0][2][2]-p[0][0][2]))*one_div_dx2*one_div_dy2;
-    b[37] = (p[3][2][2]-p[3][0][2]-(p[1][2][2]-p[1][0][2]))*one_div_dx3*one_div_dy2;
-    b[38] = (p[2][3][2]-p[2][1][2]-(p[0][3][2]-p[0][1][2]))*one_div_dx2*one_div_dy3;
-    b[39] = (p[3][3][2]-p[3][1][2]-(p[1][3][2]-p[1][1][2]))*one_div_dx3*one_div_dy3;
-
-    // partial xz derivatives
-    b[40] = (p[2][1][2]-p[2][1][0]-(p[0][1][2]-p[0][1][0]))*one_div_dx2*one_div_dz2;
-    b[41] = (p[3][1][2]-p[3][1][0]-(p[1][1][2]-p[1][1][0]))*one_div_dx3*one_div_dz2;
-    b[42] = (p[2][2][2]-p[2][2][0]-(p[0][2][2]-p[0][2][0]))*one_div_dx2*one_div_dz2;
-    b[43] = (p[3][2][2]-p[3][2][0]-(p[1][2][2]-p[1][2][0]))*one_div_dx3*one_div_dz2;
-    b[44] = (p[2][1][3]-p[2][1][1]-(p[0][1][3]-p[0][1][1]))*one_div_dx2*one_div_dz3;
-    b[45] = (p[3][1][3]-p[3][1][1]-(p[1][1][3]-p[1][1][1]))*one_div_dx3*one_div_dz3;
-    b[46] = (p[2][2][3]-p[2][2][1]-(p[0][2][3]-p[0][2][1]))*one_div_dx2*one_div_dz3;
-    b[47] = (p[3][2][3]-p[3][2][1]-(p[1][2][3]-p[1][2][1]))*one_div_dx3*one_div_dz3;
-
-    // partial yz derivatives
-    b[48] = (p[1][2][2]-p[1][2][0]-(p[1][0][2]-p[1][0][0]))*one_div_dy2*one_div_dz2;
-    b[49] = (p[2][2][2]-p[2][2][0]-(p[2][0][2]-p[2][0][0]))*one_div_dy2*one_div_dz2;
-    b[50] = (p[1][3][2]-p[1][3][0]-(p[1][1][2]-p[1][1][0]))*one_div_dy3*one_div_dz2;
-    b[51] = (p[2][3][2]-p[2][3][0]-(p[2][1][2]-p[2][1][0]))*one_div_dy3*one_div_dz2;
-    b[52] = (p[1][2][3]-p[1][2][1]-(p[1][0][3]-p[1][0][1]))*one_div_dy2*one_div_dz3;
-    b[53] = (p[2][2][3]-p[2][2][1]-(p[2][0][3]-p[2][0][1]))*one_div_dy2*one_div_dz3;
-    b[54] = (p[1][3][3]-p[1][3][1]-(p[1][1][3]-p[1][1][1]))*one_div_dy3*one_div_dz3;
-    b[55] = (p[2][3][3]-p[2][3][1]-(p[2][1][3]-p[2][1][1]))*one_div_dy3*one_div_dz3;
-
-    // partial xyz derivatives
-    b[56] = (p[2][2][2]-p[2][2][0]-(p[2][0][2]-p[2][0][0])-(p[0][2][2]-p[0][2][0])+(p[0][0][2]-p[0][0][0]))*one_div_dx2*one_div_dy2*one_div_dz2;
-    b[57] = (p[3][2][2]-p[3][2][0]-(p[3][0][2]-p[3][0][0])-(p[1][2][2]-p[1][2][0])+(p[1][0][2]-p[1][0][0]))*one_div_dx3*one_div_dy2*one_div_dz2;
-    b[58] = (p[2][3][2]-p[2][3][0]-(p[2][1][2]-p[2][1][0])-(p[0][3][2]-p[0][3][0])+(p[0][1][2]-p[0][1][0]))*one_div_dx2*one_div_dy3*one_div_dz2;
-    b[59] = (p[3][3][2]-p[3][3][0]-(p[3][1][2]-p[3][1][0])-(p[1][3][2]-p[1][3][0])+(p[1][1][2]-p[1][1][0]))*one_div_dx3*one_div_dy3*one_div_dz2;
-    b[60] = (p[2][2][3]-p[2][2][1]-(p[2][0][3]-p[2][0][1])-(p[0][2][3]-p[0][2][1])+(p[0][0][3]-p[0][0][1]))*one_div_dx2*one_div_dy2*one_div_dz3;
-    b[61] = (p[3][2][3]-p[3][2][1]-(p[3][0][3]-p[3][0][1])-(p[1][2][3]-p[1][2][1])+(p[1][0][3]-p[1][0][1]))*one_div_dx3*one_div_dy2*one_div_dz3;
-    b[62] = (p[2][3][3]-p[2][3][1]-(p[2][1][3]-p[2][1][1])-(p[0][3][3]-p[0][3][1])+(p[0][1][3]-p[0][1][1]))*one_div_dx2*one_div_dy3*one_div_dz3;
-    b[63] = (p[3][3][3]-p[3][3][1]-(p[3][1][3]-p[3][1][1])-(p[1][3][3]-p[1][3][1])+(p[1][1][3]-p[1][1][1]))*one_div_dx3*one_div_dy3*one_div_dz3;
-
-    for (uint i=0; i<64; i++)
-    {
-        double element = 0.0;
-        for (uint j=0; j<64; j++)
-            element += COEFF_MATRIX[i][j]*b[j];
-
-        m_cached_coeffs[i_0*m_ny*m_nz+j_0*m_nz+k_0][i] = element;
-    }
 }
 
 
@@ -948,8 +912,6 @@ double Interpolator3D::get_interp_value_tricubic(double x, double y, double z) c
     y = (y-m_y[j_0+1])/(m_y[j_0+2]-m_y[j_0+1]);
     z = (z-m_z[k_0+1])/(m_z[k_0+2]-m_z[k_0+1]);
 
-    double result = 0.0;
-
     double x2 = x*x;
     double x3 = x2*x;
 
@@ -959,12 +921,10 @@ double Interpolator3D::get_interp_value_tricubic(double x, double y, double z) c
     double z2 = z*z;
     double z3 = z2*z;
 
-    result = B(m_cached_coeffs[i_0*m_ny*m_nz + j_0*m_nz + k_0], 0, y, y2, y3, z, z2, z3)
+    return B(m_cached_coeffs[i_0*m_ny*m_nz + j_0*m_nz + k_0], 0, y, y2, y3, z, z2, z3)
         + B(m_cached_coeffs[i_0*m_ny*m_nz + j_0*m_nz + k_0], 1, y, y2, y3, z, z2, z3)*x
         + B(m_cached_coeffs[i_0*m_ny*m_nz + j_0*m_nz + k_0], 2, y, y2, y3, z, z2, z3)*x2
         + B(m_cached_coeffs[i_0*m_ny*m_nz + j_0*m_nz + k_0], 3, y, y2, y3, z, z2, z3)*x3;
-
-    return result;        
 }
 
 

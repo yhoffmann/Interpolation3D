@@ -48,14 +48,11 @@ public:
 
 class Interpolator3D
 {
-public:
+protected:
 
     uint m_nx = 0;
     uint m_ny = 0;
     uint m_nz = 0;
-    double m_tx[2] = {0.0, 0.0}; // step growth factor (when data is generated or read from file)
-    double m_ty[2] = {0.0, 0.0};
-    double m_tz[2] = {0.0, 0.0};
     double* m_data = nullptr;
     Coeffs* m_cached_coeffs = nullptr;
     double* m_x = nullptr;
