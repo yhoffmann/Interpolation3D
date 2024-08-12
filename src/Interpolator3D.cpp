@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <vector>
 #include <gsl/gsl_math.h>
 #include "../include/Interpolator3D.hpp"
 #include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
