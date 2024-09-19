@@ -21,9 +21,9 @@ enum GridSpacing : unsigned char
 
 struct DataGenerationConfig
 {
-    uint nx=300; double x_min=0.0; double x_max=15.0; GridSpacing x_grid_spacing = Exponential; double x_exp_grid_spacing_parameter = 8.0;
-    uint ny=300; double y_min=0.0; double y_max=15.0; GridSpacing y_grid_spacing = Exponential; double y_exp_grid_spacing_parameter = 8.0;
-    uint nz=30; double z_min=0.0; double z_max=M_PI; GridSpacing z_grid_spacing = Linear; double z_exp_grid_spacing_parameter = 8.0;
+    uint nx=400; double x_min=0.0; double x_max=15.0; GridSpacing x_grid_spacing = Exponential; double x_exp_grid_spacing_parameter = 8.0;
+    uint ny=400; double y_min=0.0; double y_max=15.0; GridSpacing y_grid_spacing = Exponential; double y_exp_grid_spacing_parameter = 8.0;
+    uint nz=60; double z_min=0.0; double z_max=M_PI; GridSpacing z_grid_spacing = Linear; double z_exp_grid_spacing_parameter = 8.0;
 };
 
 
@@ -76,7 +76,7 @@ public:
     double get_interp_value_tricubic_old(double x, double y, double z) const;
     double get_interp_value_bicubic_unilinear(double x, double y, double z) const;
     
-    constexpr double operator() (double x, double y, double z, InterpolationType type = BicubicUnilinear) const
+    constexpr double operator() (double x, double y, double z, InterpolationType type = Tricubic) const
     {
         switch (type)
         {
