@@ -61,8 +61,7 @@ protected:
 
 public:
 
-    static double step_growth_factor(double k);
-    void generate_data(std::function<double (double,double,double)> func, const DataGenerationConfig* config, bool progress_monitor);
+    void generate_data(std::function<double (double,double,double)> func, const DataGenerationConfig* config, uint num_threads = 1, bool progress_monitor = false);
     void export_data_old_format(const std::string& filepath) const;
     void import_data_old_format(const std::string& filepath);
     void export_data_plain_text(const std::string& filepath) const;
@@ -76,7 +75,7 @@ public:
     double get_interp_value_tricubic_old(double x, double y, double z) const;
     double get_interp_value_bicubic_unilinear(double x, double y, double z) const;
     
-    constexpr double operator() (double x, double y, double z, InterpolationType type = Tricubic) const
+    inline constexpr double operator() (double x, double y, double z, InterpolationType type = Tricubic) const
     {
         switch (type)
         {

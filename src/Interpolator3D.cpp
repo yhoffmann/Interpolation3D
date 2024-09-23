@@ -10,6 +10,7 @@
 #include "../include/Interpolator3D.hpp"
 #include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
 #include "../include/CoeffMatrix.hpp"
+#include "../external/thread-pool/include/ThreadPool.hpp"
 
 #define _INDEX(i, j, k) ((i)*(m_ny+3)*(m_nz+3)+(j)*(m_nz+3)+k)
 
@@ -106,7 +107,7 @@ void Interpolator3D::cache_coeffs()
 }
 
 
-void Interpolator3D::set_single_cell_coeffs(uint i_0, uint j_0, uint k_0)
+void Interpolator3D::set_single_cell_coeffs (uint i_0, uint j_0, uint k_0)
 {
     double p[4][4][4];
 
@@ -690,31 +691,35 @@ void Interpolator3D::import_data (const std::string& filepath)
 }
 
 
-void Interpolator3D::generate_data (std::function<double (double,double,double)> func, const DataGenerationConfig* config, bool progress_monitor)
+void Interpolator3D::generate_data (std::function<double (double,double,double)> func, const DataGenerationConfig* config, uint num_threads, bool progress_monitor)
 {
     set_grid(config);
     prepare_data();
 
+    ThreadPool pool(32);
     ProgressMonitor pm(m_nx);
 
-    #pragma omp parallel for ordered
     for (uint i=1; i<m_nx+1; i++)
     {
-        for (uint j=1; j<m_ny+1; j++)
-        {
-            for (uint k=1; k<m_nz+1; k++)
+        pool.enq_job(
+            [i, &pm, &func, this]
             {
-                m_data[_INDEX(i, j, k)] = func(m_x[i], m_y[j], m_z[k]);
+                for (uint j=1; j<m_ny+1; j++)
+                    for (uint k=1; k<m_nz+1; k++)
+                        m_data[_INDEX(i, j, k)] = func(m_x[i], m_y[j], m_z[k]);
+        #ifdef _INTERP_LOG
+                if (progress_monitor)
+                {
+                    pm.add_finished();
+                    pm.print_progress_percentage();
+                }
+        #endif
             }
-        }
-#ifdef _INTERP_LOG
-        if (progress_monitor)
-        {
-            pm.add_finished();
-            pm.print_progress_percentage();
-        }
-#endif
+        );
     }
+
+    pool.await();
+    pool.stop();
 
     set_data_outermost();
 
@@ -722,7 +727,7 @@ void Interpolator3D::generate_data (std::function<double (double,double,double)>
 }
 
 
-void Interpolator3D::find_closest_lower_data_point(int& i_0, int& j_0, int& k_0, double& x, double& y, double& z) const
+void Interpolator3D::find_closest_lower_data_point (int& i_0, int& j_0, int& k_0, double& x, double& y, double& z) const
 {
     i_0 = find_index(m_x+1, m_nx, x);
     j_0 = find_index(m_y+1, m_ny, y);
@@ -891,19 +896,19 @@ double Interpolator3D::get_interp_value_tricubic_old (double x, double y, double
 }
 
 
-inline double Interpolator3D::A(Coeffs& coeffs, uint i, uint j, double z, double z2, double z3)
+inline double Interpolator3D::A (Coeffs& coeffs, uint i, uint j, double z, double z2, double z3)
 {
     return coeffs[i+j*4+0*16] + coeffs[i+j*4+1*16]*z + coeffs[i+j*4+2*16]*z2 + coeffs[i+j*4+3*16]*z3;
 }
 
 
-inline double Interpolator3D::B(Coeffs& coeffs, uint i, double y, double y2, double y3, double z, double z2, double z3)
+inline double Interpolator3D::B (Coeffs& coeffs, uint i, double y, double y2, double y3, double z, double z2, double z3)
 {
     return A(coeffs, i, 0, z, z2, z3) + A(coeffs, i, 1, z, z2, z3)*y + A(coeffs, i, 2, z, z2, z3)*y2 + A(coeffs, i, 3, z, z2, z3)*y3;
 }
 
 
-double Interpolator3D::get_interp_value_tricubic(double x, double y, double z) const
+double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) const
 {
     int i_0, j_0, k_0;
 
@@ -1004,6 +1009,10 @@ Interpolator3D& Interpolator3D::operator= (Interpolator3D&& other)
 {
     if (this==&other)
         return *this;
+
+    safe_delete_data();
+    safe_delete_cached_coeffs();
+    safe_delete_grid();
 
     std::copy(&other, &other+1, this);
 
