@@ -702,7 +702,7 @@ void Interpolator3D::generate_data (std::function<double (double,double,double)>
     for (uint i=1; i<m_nx+1; i++)
     {
         pool.enq_job(
-            [i, &pm, &func, this]
+            [i, &pm, &func, this, progress_monitor]
             {
                 for (uint j=1; j<m_ny+1; j++)
                     for (uint k=1; k<m_nz+1; k++)
