@@ -1,4 +1,6 @@
 #pragma once
+#ifndef INTERPOLATOR3D_HPP
+#define INTERPOLATOR3D_HPP
 
 
 #include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
@@ -1155,3 +1157,6 @@ Interpolator3D::~Interpolator3D()
 
 #undef _INDEX
 #undef _M_COEFF_MATRIX6464
+
+
+#endif // INTERPOLATOR3D_HPP
