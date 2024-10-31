@@ -63,6 +63,7 @@ protected:
     static const double COEFF_MATRIX[64][64];
 
 protected:
+    uint m_num_threads = 1;
     uint m_nx = 0;
     uint m_ny = 0;
     uint m_nz = 0;
@@ -73,7 +74,9 @@ protected:
     double* m_z = nullptr;
 
 public:
-    void generate_data(std::function<double (double,double,double)> func, const DataGenerationConfig* config, uint num_threads = 1, bool monitor_progress = false);
+    void set_num_threads(uint num_threads);
+
+    void generate_data(std::function<double (double,double,double)> func, const DataGenerationConfig* config, bool monitor_progress = false);
     void export_data_old_format(const std::string& filepath) const;
     void import_data_old_format(const std::string& filepath);
     void export_data_plain_text(const std::string& filepath) const;
@@ -96,7 +99,6 @@ public:
             break;
 
             case Tricubic: // fallthrough
-
             default:
                 return get_interp_value_tricubic(x, y, z);
             break;
@@ -134,7 +136,13 @@ protected:
 #define _INDEX(i, j, k) ((i)*(m_ny+3)*(m_nz+3)+(j)*(m_nz+3)+k)
 
 
-double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
+inline void Interpolator3D::set_num_threads(uint num_threads)
+{
+    m_num_threads = num_threads;
+}
+
+
+inline double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
 {
     GridSpacing grid_spacing;
     int n;
@@ -179,7 +187,7 @@ double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationCo
 }
 
 
-void Interpolator3D::safe_delete_data()
+inline void Interpolator3D::safe_delete_data()
 {
     if (m_data!=nullptr)
         delete[] m_data;
@@ -188,7 +196,7 @@ void Interpolator3D::safe_delete_data()
 }
 
 
-void Interpolator3D::prepare_data()
+inline void Interpolator3D::prepare_data()
 {
     safe_delete_data();
     m_data = new(std::nothrow) double [(m_nx+3)*(m_ny+3)*(m_nz+3)];
@@ -197,7 +205,7 @@ void Interpolator3D::prepare_data()
 }
 
 
-void Interpolator3D::safe_delete_cached_coeffs()
+inline void Interpolator3D::safe_delete_cached_coeffs()
 {
     if (m_cached_coeffs!=nullptr)
         delete[] m_cached_coeffs;
@@ -206,7 +214,7 @@ void Interpolator3D::safe_delete_cached_coeffs()
 }
 
 
-void Interpolator3D::prepare_cached_coeffs()
+inline void Interpolator3D::prepare_cached_coeffs()
 {
     safe_delete_cached_coeffs();
     m_cached_coeffs = new(std::nothrow) Coeffs[m_nx*m_ny*m_nz];
@@ -216,18 +224,28 @@ void Interpolator3D::prepare_cached_coeffs()
 }
 
 
-void Interpolator3D::cache_coeffs()
+inline void Interpolator3D::cache_coeffs()
 {
     prepare_cached_coeffs();
 
+    ThreadPool pool(m_num_threads);
     for (uint i=0; i<m_nx; i++)
-        for (uint j=0; j<m_ny; j++)
-            for (uint k=0; k<m_nz; k++)
-                set_single_cell_coeffs(i, j, k);
+    {
+        pool.enq_job(
+            [i, this]
+            {
+                for (uint j=0; j<m_ny; j++)
+                    for (uint k=0; k<m_nz; k++)
+                        set_single_cell_coeffs(i, j, k);
+            }
+        );
+    }
+
+    pool.await();
 }
 
 
-void Interpolator3D::set_single_cell_coeffs (uint i_0, uint j_0, uint k_0)
+inline void Interpolator3D::set_single_cell_coeffs (uint i_0, uint j_0, uint k_0)
 {
     double p[4][4][4];
 
@@ -355,7 +373,7 @@ void Interpolator3D::set_single_cell_coeffs (uint i_0, uint j_0, uint k_0)
 }
 
 
-void Interpolator3D::safe_delete_grid()
+inline void Interpolator3D::safe_delete_grid()
 {
     if (m_x)
     {
@@ -375,7 +393,7 @@ void Interpolator3D::safe_delete_grid()
 }
 
 
-void Interpolator3D::set_grid (const DataGenerationConfig* config)
+inline void Interpolator3D::set_grid (const DataGenerationConfig* config)
 {
     safe_delete_grid();
 
@@ -409,7 +427,7 @@ void Interpolator3D::set_grid (const DataGenerationConfig* config)
 }
 
 
-void Interpolator3D::set_grid_outermost()
+inline void Interpolator3D::set_grid_outermost()
 {
     m_x[0] = m_x[1]-1.0;
     m_x[m_nx+1] = m_x[m_nx]+1.0;
@@ -425,7 +443,7 @@ void Interpolator3D::set_grid_outermost()
 }
 
 
-void Interpolator3D::set_data_outermost()
+inline void Interpolator3D::set_data_outermost()
 {
     for (uint i=0; i<m_nx+3; i++)
         for (uint j=0; j<m_ny+3; j++)
@@ -475,7 +493,7 @@ void Interpolator3D::set_data_outermost()
 }
 
 
-void Interpolator3D::export_data_old_format (const std::string& filepath) const
+inline void Interpolator3D::export_data_old_format (const std::string& filepath) const
 {
 #ifdef _INTERP_LOG
     // checking if file already exists
@@ -530,7 +548,7 @@ void Interpolator3D::export_data_old_format (const std::string& filepath) const
 }
 
 
-void Interpolator3D::import_data_old_format (const std::string& filepath)
+inline void Interpolator3D::import_data_old_format (const std::string& filepath)
 {
 #ifdef _INTERP_LOG
     std::cout << "Importing m_data IN THE OLD FORMAT from file..." << std::endl;
@@ -606,7 +624,7 @@ void Interpolator3D::import_data_old_format (const std::string& filepath)
 }
 
 
-void Interpolator3D::export_data_plain_text (const std::string& filepath) const
+inline void Interpolator3D::export_data_plain_text (const std::string& filepath) const
 {
 #ifdef _INTERP_LOG
     std::ifstream file_check(filepath);
@@ -662,7 +680,7 @@ void Interpolator3D::export_data_plain_text (const std::string& filepath) const
 }
 
 
-void Interpolator3D::import_data_plain_text (const std::string& filepath)
+inline void Interpolator3D::import_data_plain_text (const std::string& filepath)
 {
 #ifdef _INTERP_LOG
     std::cout << "Importing m_data from file..." << std::endl;
@@ -748,7 +766,7 @@ void Interpolator3D::import_data_plain_text (const std::string& filepath)
 }
 
 
-void Interpolator3D::export_data (const std::string& filepath) const
+inline void Interpolator3D::export_data (const std::string& filepath) const
 {
     if (!m_data || !m_x || !m_y || !m_z)
         exit(57);
@@ -777,7 +795,7 @@ void Interpolator3D::export_data (const std::string& filepath) const
 }
 
 
-void Interpolator3D::import_data (const std::string& filepath)
+inline void Interpolator3D::import_data (const std::string& filepath)
 {
     std::ifstream in(filepath, std::ios::binary);
     if (!in.is_open())
@@ -811,12 +829,12 @@ void Interpolator3D::import_data (const std::string& filepath)
 }
 
 
-void Interpolator3D::generate_data (std::function<double (double,double,double)> func, const DataGenerationConfig* config, uint num_threads, bool monitor_progress)
+inline void Interpolator3D::generate_data (std::function<double (double,double,double)> func, const DataGenerationConfig* config, bool monitor_progress)
 {
     set_grid(config);
     prepare_data();
 
-    ThreadPool pool(num_threads);
+    ThreadPool pool(m_num_threads);
     ProgressMonitor pm(m_nx);
 
     for (uint i=1; i<m_nx+1; i++)
@@ -846,7 +864,7 @@ void Interpolator3D::generate_data (std::function<double (double,double,double)>
 }
 
 
-void Interpolator3D::find_closest_lower_data_point (int& i_0, int& j_0, int& k_0, double& x, double& y, double& z) const
+inline void Interpolator3D::find_closest_lower_data_point (int& i_0, int& j_0, int& k_0, double& x, double& y, double& z) const
 {
     i_0 = find_index(m_x+1, m_nx, x);
     j_0 = find_index(m_y+1, m_ny, y);
@@ -869,7 +887,7 @@ void Interpolator3D::find_closest_lower_data_point (int& i_0, int& j_0, int& k_0
 }
 
 
-uint Interpolator3D::find_index (double* arr, int size, double x)
+inline uint Interpolator3D::find_index (double* arr, int size, double x)
 {
     int low = 0;
     int high = size-1;
@@ -893,7 +911,7 @@ uint Interpolator3D::find_index (double* arr, int size, double x)
 }
 
 
-double Interpolator3D::unicubic_interpolate (double p[4], double t[2], double z)
+inline double Interpolator3D::unicubic_interpolate (double p[4], double t[2], double z)
 {
     double p2_m_p0_div_t2_m_t0 = (p[2]-p[0])/(1.0-t[0]);
     double p3_m_p1_div_t3_m_t1 = (p[3]-p[1])/t[1];
@@ -903,7 +921,7 @@ double Interpolator3D::unicubic_interpolate (double p[4], double t[2], double z)
 }
 
 
-double Interpolator3D::bicubic_interpolate (double p[4][4], double t_y[2], double t_z[2], double y, double z)
+inline double Interpolator3D::bicubic_interpolate (double p[4][4], double t_y[2], double t_z[2], double y, double z)
 {
 	double unicubic_result[4];
 
@@ -916,7 +934,7 @@ double Interpolator3D::bicubic_interpolate (double p[4][4], double t_y[2], doubl
 }
 
 
-double Interpolator3D::tricubic_interpolate (double p[4][4][4], double t_x[2], double t_y[2], double t_z[2], double x, double y, double z)
+inline double Interpolator3D::tricubic_interpolate (double p[4][4][4], double t_x[2], double t_y[2], double t_z[2], double x, double y, double z)
 {
 	double bicubic_result[4];
 
@@ -929,7 +947,7 @@ double Interpolator3D::tricubic_interpolate (double p[4][4][4], double t_x[2], d
 }
 
 
-double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, double z) const
+inline double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, double z) const
 {
     int i_0, j_0, k_0;
 
@@ -973,7 +991,7 @@ double Interpolator3D::get_interp_value_bicubic_unilinear (double x, double y, d
 }
 
 
-double Interpolator3D::get_interp_value_tricubic_old (double x, double y, double z) const
+inline double Interpolator3D::get_interp_value_tricubic_old (double x, double y, double z) const
 {
     int i_0, j_0, k_0;
 
@@ -1027,7 +1045,7 @@ inline double Interpolator3D::B (Coeffs& coeffs, uint i, double y, double y2, do
 }
 
 
-double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) const
+inline double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) const
 {
     int i_0, j_0, k_0;
 
@@ -1053,18 +1071,18 @@ double Interpolator3D::get_interp_value_tricubic (double x, double y, double z) 
 }
 
 
-Interpolator3D::Interpolator3D()
+inline Interpolator3D::Interpolator3D()
 {
 }
 
 
-Interpolator3D::Interpolator3D (const std::string& filepath)
+inline Interpolator3D::Interpolator3D (const std::string& filepath)
 {
     import_data(filepath);
 }
 
 
-Interpolator3D::Interpolator3D (const Interpolator3D& other)
+inline Interpolator3D::Interpolator3D (const Interpolator3D& other)
     : m_nx(other.m_nx)
     , m_ny(other.m_ny)
     , m_nz(other.m_nz)
@@ -1083,7 +1101,7 @@ Interpolator3D::Interpolator3D (const Interpolator3D& other)
 }
 
 
-Interpolator3D::Interpolator3D (Interpolator3D&& other)
+inline Interpolator3D::Interpolator3D (Interpolator3D&& other)
     : m_nx(other.m_nx)
     , m_ny(other.m_ny)
     , m_nz(other.m_nz)
@@ -1101,7 +1119,7 @@ Interpolator3D::Interpolator3D (Interpolator3D&& other)
 }
 
 
-Interpolator3D& Interpolator3D::operator= (const Interpolator3D& other)
+inline Interpolator3D& Interpolator3D::operator= (const Interpolator3D& other)
 {
     if (this==&other)
         return *this;
@@ -1124,7 +1142,7 @@ Interpolator3D& Interpolator3D::operator= (const Interpolator3D& other)
 }
 
 
-Interpolator3D& Interpolator3D::operator= (Interpolator3D&& other)
+inline Interpolator3D& Interpolator3D::operator= (Interpolator3D&& other)
 {
     if (this==&other)
         return *this;
@@ -1145,7 +1163,7 @@ Interpolator3D& Interpolator3D::operator= (Interpolator3D&& other)
 }
 
 
-Interpolator3D::~Interpolator3D()
+inline Interpolator3D::~Interpolator3D()
 {
     safe_delete_grid();
     
@@ -1156,7 +1174,6 @@ Interpolator3D::~Interpolator3D()
 
 
 #undef _INDEX
-#undef _M_COEFF_MATRIX6464
 
 
 #endif // INTERPOLATOR3D_HPP
