@@ -22,7 +22,7 @@ class Interpolator3D
 {
 protected:
     typedef int InterpFormatCheck;
-    const InterpFormatCheck FORMAT_CHECK_NUM = 1906853104;
+    static constexpr const InterpFormatCheck FORMAT_CHECK_NUM = 1906853104;
 
     enum class Dir : unsigned char
     {
@@ -117,6 +117,7 @@ protected:
     void safe_delete_grid();
     void set_grid(const DataGenerationConfig* config);
     void set_grid_outermost();
+    uint get_data_index(uint i, uint j, uint k) const;
     void set_data_outermost();
     void safe_delete_data();
     void prepare_data();
@@ -126,14 +127,12 @@ protected:
     void set_single_cell_coeffs(uint i_0, uint j_0, uint k_0);
     static double A(Coeffs& coeffs, uint i, uint j, double z, double z2, double z3);
     static double B(Coeffs& coeffs, uint i, double y, double y2, double y3, double z, double z2, double z3);
-    double pos_of_grid_point(Dir dir, int index, const DataGenerationConfig* config) const;
+    double get_pos_of_grid_point(Dir dir, int index, const DataGenerationConfig* config) const;
     void find_closest_lower_data_point(int& i_0, int& j_0, int& k_0, double& x, double& y, double& z) const;
     static uint find_index(double* arr, int size, double x);
 }; // class Interpolator3D
 
 #include "CoeffMatrix.hpp"
-
-#define _INDEX(i, j, k) ((i)*(m_ny+3)*(m_nz+3)+(j)*(m_nz+3)+k)
 
 
 inline void Interpolator3D::set_num_threads(uint num_threads)
@@ -142,7 +141,7 @@ inline void Interpolator3D::set_num_threads(uint num_threads)
 }
 
 
-inline double Interpolator3D::pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
+inline double Interpolator3D::get_pos_of_grid_point (Dir dir, int i, const DataGenerationConfig* config) const
 {
     GridSpacing grid_spacing;
     int n;
@@ -252,7 +251,7 @@ inline void Interpolator3D::set_single_cell_coeffs (uint i_0, uint j_0, uint k_0
     for (int i=0; i<4; i++)
         for (int j=0; j<4; j++)
             for (int k=0; k<4; k++)
-                p[i][j][k] = m_data[_INDEX(i+i_0, j+j_0, k+k_0)];
+                p[i][j][k] = m_data[get_data_index(i+i_0, j+j_0, k+k_0)];
 
     double tx[4];
     double ty[4];
@@ -414,13 +413,13 @@ inline void Interpolator3D::set_grid (const DataGenerationConfig* config)
     if (config)
     {
         for (uint i=0; i<m_nx; i++)
-            m_x[i+1] = pos_of_grid_point(Dir::X, i, config); // +1 because we do not fill the two outermost elements yet
+            m_x[i+1] = get_pos_of_grid_point(Dir::X, i, config); // +1 because we do not fill the two outermost elements yet
 
         for (uint j=0; j<m_ny; j++)
-            m_y[j+1] = pos_of_grid_point(Dir::Y, j, config);
+            m_y[j+1] = get_pos_of_grid_point(Dir::Y, j, config);
 
         for (uint k=0; k<m_nz; k++)
-            m_z[k+1] = pos_of_grid_point(Dir::Z, k, config);
+            m_z[k+1] = get_pos_of_grid_point(Dir::Z, k, config);
 
         set_grid_outermost();
     }
@@ -440,6 +439,12 @@ inline void Interpolator3D::set_grid_outermost()
     m_z[0] = m_z[1]-1.0;
     m_z[m_nz+1] = m_z[m_nz]+1.0;
     m_z[m_nz+2] = m_z[m_nz+1]+1.0;
+}
+
+
+inline uint Interpolator3D::get_data_index(uint i, uint j, uint k) const
+{
+    return i*(m_ny+3)*(m_nz+3) + j*(m_nz+3) + k;
 }
 
 
@@ -488,7 +493,7 @@ inline void Interpolator3D::set_data_outermost()
                     }
 
                     if (is_outermost)
-                        m_data[_INDEX(i, j, k)] = m_data[_INDEX(i_temp, j_temp, k_temp)];
+                        m_data[get_data_index(i, j, k)] = m_data[get_data_index(i_temp, j_temp, k_temp)];
                 }
 }
 
@@ -534,7 +539,7 @@ inline void Interpolator3D::export_data_old_format (const std::string& filepath)
         {
             for (uint k=0; k<m_nz; k++)
             {
-                out << std::setprecision(10) << i << " " << j << " " << k << " " << m_x[i+1] << " " << m_y[j+1] << " " << m_z[k+1] << " " << m_data[_INDEX(i+1, j+1, k+1)] << std::endl;
+                out << std::setprecision(10) << i << " " << j << " " << k << " " << m_x[i+1] << " " << m_y[j+1] << " " << m_z[k+1] << " " << m_data[get_data_index(i+1, j+1, k+1)] << std::endl;
             }
             out << std::endl;
         }
@@ -608,7 +613,7 @@ inline void Interpolator3D::import_data_old_format (const std::string& filepath)
             m_y[j+1] = std::stod(line_vec[4]);
             m_z[k+1] = std::stod(line_vec[5]);
 
-            m_data[_INDEX(i+1, j+1, k+1)] = std::stod(line_vec[6]);
+            m_data[get_data_index(i+1, j+1, k+1)] = std::stod(line_vec[6]);
         }
     }
 
@@ -671,7 +676,7 @@ inline void Interpolator3D::export_data_plain_text (const std::string& filepath)
     for (uint i=1; i<m_nx+1; i++)
         for (uint j=1; j<m_ny+1; j++)
             for (uint k=1; k<m_nz+1; k++)
-                out << std::setprecision(10) << m_data[_INDEX(i, j, k)] << std::endl;
+                out << std::setprecision(10) << m_data[get_data_index(i, j, k)] << std::endl;
 
     out.close();
 #ifdef _INTERP_LOG
@@ -752,7 +757,7 @@ inline void Interpolator3D::import_data_plain_text (const std::string& filepath)
             for (k=1; k<m_nz+1; k++)
             {
                 std::getline(in, line);
-                m_data[_INDEX(i, j, k)] = std::stod(line);
+                m_data[get_data_index(i, j, k)] = std::stod(line);
             }
 
     in.close();
@@ -844,7 +849,7 @@ inline void Interpolator3D::generate_data (std::function<double (double,double,d
             {
                 for (uint j=1; j<m_ny+1; j++)
                     for (uint k=1; k<m_nz+1; k++)
-                        m_data[_INDEX(i, j, k)] = func(m_x[i], m_y[j], m_z[k]);
+                        m_data[get_data_index(i, j, k)] = func(m_x[i], m_y[j], m_z[k]);
                         
                 if (monitor_progress)
                 {
@@ -959,8 +964,8 @@ inline double Interpolator3D::get_interp_value_bicubic_unilinear (double x, doub
     {
         for (int j=0; j<4; j++)
         {
-            p_z_0[i][j] = m_data[_INDEX(i+i_0, j+j_0, k_0+1)];
-            p_z_1[i][j] = m_data[_INDEX(i+i_0, j+j_0, k_0+2)];
+            p_z_0[i][j] = m_data[get_data_index(i+i_0, j+j_0, k_0+1)];
+            p_z_1[i][j] = m_data[get_data_index(i+i_0, j+j_0, k_0+2)];
         }
     }
 
@@ -1002,7 +1007,7 @@ inline double Interpolator3D::get_interp_value_tricubic_old (double x, double y,
     for (int i=0; i<4; i++)
         for (int j=0; j<4; j++)
             for (int k=0; k<4; k++)
-                p[i][j][k] = m_data[_INDEX(i+i_0, j+j_0, k+k_0)];
+                p[i][j][k] = m_data[get_data_index(i+i_0, j+j_0, k+k_0)];
 
     double t_x[2];
     double t[4];
@@ -1171,9 +1176,6 @@ inline Interpolator3D::~Interpolator3D()
 
     safe_delete_cached_coeffs();
 }
-
-
-#undef _INDEX
 
 
 #endif // INTERPOLATOR3D_HPP
