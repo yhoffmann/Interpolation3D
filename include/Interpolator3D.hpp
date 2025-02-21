@@ -840,7 +840,7 @@ inline void Interpolator3D::generate_data (std::function<double (double,double,d
     prepare_data();
 
     ThreadPool pool(m_num_threads);
-    ProgressMonitor pm(m_nx);
+    ProgressMonitor pm(m_nx, "Interpolator caching progress: ");
 
     for (uint i=1; i<m_nx+1; i++)
     {
