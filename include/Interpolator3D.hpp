@@ -367,7 +367,7 @@ inline void Interpolator3D::set_single_cell_coeffs (uint i_0, uint j_0, uint k_0
         for (uint j=0; j<64; j++)
             element += COEFF_MATRIX[i][j]*b[j];
 
-        m_cached_coeffs[i_0*m_ny*m_nz+j_0*m_nz+k_0][i] = element;
+        m_cached_coeffs[i_0*m_ny*m_nz + j_0*m_nz + k_0][i] = element;
     }
 }
 
@@ -1040,7 +1040,7 @@ inline double Interpolator3D::get_interp_value_tricubic_old (double x, double y,
 
 inline double Interpolator3D::A (Coeffs& coeffs, uint i, uint j, double z, double z2, double z3)
 {
-    return coeffs[i+j*4+0*16] + coeffs[i+j*4+1*16]*z + coeffs[i+j*4+2*16]*z2 + coeffs[i+j*4+3*16]*z3;
+    return coeffs[i + j*4 + 0*16] + coeffs[i + j*4 + 1*16]*z + coeffs[i + j*4 + 2*16]*z2 + coeffs[i + j*4 + 3*16]*z3;
 }
 
 
