@@ -248,9 +248,9 @@ inline void Interpolator3D::set_single_cell_coeffs (uint i_0, uint j_0, uint k_0
 {
     double p[4][4][4];
 
-    for (int i=0; i<4; i++)
-        for (int j=0; j<4; j++)
-            for (int k=0; k<4; k++)
+    for (uint i=0; i<4; i++)
+        for (uint j=0; j<4; j++)
+            for (uint k=0; k<4; k++)
                 p[i][j][k] = m_data[get_data_index(i+i_0, j+j_0, k+k_0)];
 
     double tx[4];
