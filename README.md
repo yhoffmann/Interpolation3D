@@ -6,7 +6,7 @@ The tricubic interpolation is based on [this paper](http://www.cds.caltech.edu/~
 
 ## Usage
 ### Memory, important!
-Note that the default fast version of the interpolator (more infos below) needs significant amounts of memory (easily >1GB for medium grid sizes) for the cached values. You can estimate the memory needed with
+Note that the default fast version of the interpolator (more info below) needs significant amounts of memory (easily >1GB for medium grid sizes) for the cached values. You can estimate the memory needed with
 ```
 mem = nx * ny * nz * 64 * 8 * 1.0e-9 GB,
 ```
