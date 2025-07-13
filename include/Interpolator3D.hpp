@@ -1,6 +1,6 @@
 #pragma once
-#ifndef INTERPOLATOR3D_HPP
-#define INTERPOLATOR3D_HPP
+#ifndef INTERPOLATOR3D_INTERPOLATION3D_HPP_
+#define INTERPOLATOR3D_INTERPOLATION3D_HPP_
 
 #include <stdlib.h>
 
@@ -1144,4 +1144,4 @@ inline Interpolator3D::~Interpolator3D() {
   safe_delete_cached_coeffs();
 }
 
-#endif  // INTERPOLATOR3D_HPP
+#endif  // INTERPOLATOR3D_INTERPOLATION3D_HPP_

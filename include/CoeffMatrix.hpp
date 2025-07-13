@@ -1,6 +1,6 @@
 #pragma once
-#ifndef COEFFMATRIX_HPP
-#define COEFFMATRIX_HPP
+#ifndef INTERPOLATOR3D_COEFFMATRIX_HPP_
+#define INTERPOLATOR3D_COEFFMATRIX_HPP_
 
 /* Source is
  * https://github.com/nbigaouette/libtricubic/blob/master/tricubic-1.0/src/libtricubic/coeff.h
@@ -343,5 +343,4 @@ inline const double Interpolator3D::COEFF_MATRIX[64][64] = {
      2.0,  2.0,  -2.0, -2.0, 2.0,  -2.0, 2.0,  -2.0, 2.0,  -2.0, 2.0,
      -2.0, 1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0}};
 
-
-#endif // COEFFMATRIX_HPP
+#endif  // INTERPOLATOR3D_COEFFMATRIX_HPP_
