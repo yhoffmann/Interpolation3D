@@ -2,7 +2,13 @@
 #ifndef COEFFMATRIX_HPP
 #define COEFFMATRIX_HPP
 
-
+/* Source is https://github.com/nbigaouette/libtricubic/blob/master/tricubic-1.0/src/libtricubic/coeff.h
+ * Unfortunately, as is mentioned in the README in the root of the above repo,
+ * the implementation from the original authors of the paper
+ *   F. Lekien and J. Marsden, `Tricubic interpolation in three dimensions`,
+ *   International Journal for Numerical Methods in Engineering 63 (2005) no.3, 455-471, doi:10.1002/nme.1296
+ * seems to be unavailable.
+ */
 inline const double Interpolator3D::COEFF_MATRIX[64][64] = {
     { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0},
     { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0},

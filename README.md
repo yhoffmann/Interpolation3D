@@ -2,7 +2,11 @@
 
 This class allows for tricubic interpolation with arbitrary grid spacing.
 
-The tricubic interpolation is based on [this paper](http://www.cds.caltech.edu/~marsden/bib/2005/08-LeMa2005/LeMa2005.pdf) by Lekien and Marsden. But my implementation is considerably faster, especially because it handles non-regular grids. Interpolation speed is independent of the grid spacings because these only play a role in the initial caching of the interpolation coefficients, after which any interpolation runs more or less with the same speed (~40M interpolations per second on my computer, single thread).
+The tricubic interpolation is based on [this paper](http://www.cds.caltech.edu/~marsden/bib/2005/08-LeMa2005/LeMa2005.pdf)
+>Lekien, F. and Marsden, J. (2005), Tricubic interpolation in three dimensions. Int. J. Numer. Meth. Engng., 63: 455-471. https://doi.org/10.1002/nme.1296  
+
+by Lekien and Marsden. Unfortunately, the original source code by the authors does not seem be available anymore (as also described [here](https://github.com/nbigaouette/libtricubic/), which is an unofficial mirror of version `1.0` of the original authors' implementation; this is also where I acquired the array containing the interpolation coefficients).  
+My implementation seems to be very fast (when compared to approaches involving, e.g., `gsl`'s interpolation), especially because it handles non-regular grids without direct performance losses. Interpolation speed is independent of the grid spacings because these only play a role in the initial caching of the interpolation coefficients, after which any interpolation runs more or less with the same speed (~40M interpolations per second on my computer, single thread).
 
 ## Usage
 ### Memory, important!
@@ -37,3 +41,4 @@ _Note: In order for values other than `0.0` to take effect, you also need to set
 
 ### Data export
 WIP
+
