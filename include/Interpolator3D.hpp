@@ -53,8 +53,6 @@ class Interpolator3D {
     double z_exp_grid_spacing_parameter = 8.0;
   };
 
-  enum InterpolationType { BicubicUnilinear, Tricubic };
-
  protected:
   struct Coeffs {
    private:
@@ -95,21 +93,24 @@ class Interpolator3D {
   static double tricubic_interpolate(double p[4][4][4], double t_x[2],
                                      double t_y[2], double t_z[2], double x,
                                      double y, double z);
+  double get_interp_value_trilinear(double x, double y, double z) const;
   double get_interp_value_tricubic(double x, double y, double z) const;
   double get_interp_value_tricubic_old(double x, double y, double z) const;
   double get_interp_value_bicubic_unilinear(double x, double y, double z) const;
 
+  enum InterpolationType { Trilinear, BicubicUnilinear, Tricubic };
   inline constexpr double operator()(double x, double y, double z,
                                      InterpolationType type = Tricubic) const {
     switch (type) {
+      case Trilinear:
+        return get_interp_value_trilinear(x, y, z);
+
       case BicubicUnilinear:
         return get_interp_value_bicubic_unilinear(x, y, z);
-        break;
 
       case Tricubic:  // fallthrough
       default:
         return get_interp_value_tricubic(x, y, z);
-        break;
     }
   }
 
@@ -1034,6 +1035,37 @@ inline double Interpolator3D::B(Coeffs& coeffs, uint i, double y, double y2,
                                 double y3, double z, double z2, double z3) {
   return A(coeffs, i, 0, z, z2, z3) + A(coeffs, i, 1, z, z2, z3) * y +
          A(coeffs, i, 2, z, z2, z3) * y2 + A(coeffs, i, 3, z, z2, z3) * y3;
+}
+
+inline double Interpolator3D::get_interp_value_trilinear(double x, double y,
+                                                         double z) const {
+  int i_0, j_0, k_0;
+
+  find_closest_lower_data_point(i_0, j_0, k_0, x, y, z);
+
+  x = (x - m_x[i_0 + 1]) / (m_x[i_0 + 2] - m_x[i_0 + 1]);
+  y = (y - m_y[j_0 + 1]) / (m_y[j_0 + 2] - m_y[j_0 + 1]);
+  z = (z - m_z[k_0 + 1]) / (m_z[k_0 + 2] - m_z[k_0 + 1]);
+
+  double p[2][2][2];
+  for (uint i = 0; i < 2; i++)
+    for (uint j = 0; j < 2; j++)
+      for (uint k = 0; k < 2; k++)
+        p[i][j][k] = m_data[get_data_index(i + i_0, j + j_0, k + k_0)];
+
+  double y_vals[2][2];
+  y_vals[0][0] = (p[1][0][0] - p[0][0][0]) * x + p[0][0][0];
+  y_vals[0][1] = (p[1][0][1] - p[0][0][1]) * x + p[0][0][1];
+  y_vals[1][0] = (p[1][1][0] - p[0][1][0]) * x + p[0][1][0];
+  y_vals[1][1] = (p[1][1][1] - p[0][1][1]) * x + p[0][1][1];
+
+  double z_vals[2];
+  z_vals[0] = (y_vals[1][0] - y_vals[0][0]) * y + y_vals[0][0];
+  z_vals[1] = (y_vals[1][1] - y_vals[1][0]) * y + y_vals[1][0];
+
+  double result = (z_vals[1] - z_vals[0]) * z + z_vals[0];
+
+  return result;
 }
 
 inline double Interpolator3D::get_interp_value_tricubic(double x, double y,
