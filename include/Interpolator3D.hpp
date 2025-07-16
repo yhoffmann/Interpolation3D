@@ -30,7 +30,7 @@ class Interpolator3D {
   typedef int InterpFormatCheck;
   static constexpr const InterpFormatCheck FORMAT_CHECK_NUM = 1906853104;
 
-  enum class Dir : unsigned char { X, Y, Z };
+  enum class Dir : char { X = 'X', Y = 'Y', Z = 'Z' };
 
  public:
   enum GridSpacing : unsigned char { Linear, Exponential };
@@ -191,8 +191,8 @@ inline double Interpolator3D::get_pos_of_grid_point(
     return min + (max - min) * double(i) / double(n - 1);
   else  // if (grid_spacing == Exponential)
     return min + (max - min) *
-                     (exp(M_LN2 * double(i) / double(n - 1) * k) - 1.0) /
-                     (std::pow(2.0, k) - 1.0);
+                     (exp(M_LN2 * k * double(i) / double(n - 1)) - 1.0) /
+                     (exp(M_LN2 * k) - 1.0);
 }
 
 inline void Interpolator3D::safe_delete_data() {
