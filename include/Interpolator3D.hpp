@@ -17,12 +17,20 @@
 #include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
 #include "../external/thread-pool/include/ThreadPool.hpp"
 
+#define INTERPOLATOR3D_ERROR_BAD_DATA_ALLOC 50
+#define INTERPOLATOR3D_ERROR_BAD_GRID_ALLOC 51
+#define INTERPOLATOR3D_ERROR_BAD_CACHE_ALLOC 52
+#define INTERPOLATOR3D_ERROR_COULDNT_OPEN_EXPORT 53
+#define INTERPOLATOR3D_ERROR_COULDNT_OPEN_IMPORT 54
+#define INTERPOLATOR3D_ERROR_WRONG_DATA_FORMAT 55
+#define INTERPOLATOR3D_ERROR_NO_DATA_TO_EXPORT 56
+
 class Interpolator3D {
  protected:
   typedef int InterpFormatCheck;
   static constexpr const InterpFormatCheck FORMAT_CHECK_NUM = 1906853104;
 
-  enum class Dir : unsigned char { X, Y, Z };
+  enum class Dir : char { X = 'X', Y = 'Y', Z = 'Z' };
 
  public:
   enum GridSpacing : unsigned char { Linear, Exponential };
@@ -44,8 +52,6 @@ class Interpolator3D {
     GridSpacing z_grid_spacing = Linear;
     double z_exp_grid_spacing_parameter = 8.0;
   };
-
-  enum InterpolationType { BicubicUnilinear, Tricubic };
 
  protected:
   struct Coeffs {
@@ -87,21 +93,24 @@ class Interpolator3D {
   static double tricubic_interpolate(double p[4][4][4], double t_x[2],
                                      double t_y[2], double t_z[2], double x,
                                      double y, double z);
+  double get_interp_value_trilinear(double x, double y, double z) const;
   double get_interp_value_tricubic(double x, double y, double z) const;
   double get_interp_value_tricubic_old(double x, double y, double z) const;
   double get_interp_value_bicubic_unilinear(double x, double y, double z) const;
 
+  enum InterpolationType { Trilinear, BicubicUnilinear, Tricubic };
   inline constexpr double operator()(double x, double y, double z,
                                      InterpolationType type = Tricubic) const {
     switch (type) {
+      case Trilinear:
+        return get_interp_value_trilinear(x, y, z);
+
       case BicubicUnilinear:
         return get_interp_value_bicubic_unilinear(x, y, z);
-        break;
 
       case Tricubic:  // fallthrough
       default:
         return get_interp_value_tricubic(x, y, z);
-        break;
     }
   }
 
@@ -182,8 +191,8 @@ inline double Interpolator3D::get_pos_of_grid_point(
     return min + (max - min) * double(i) / double(n - 1);
   else  // if (grid_spacing == Exponential)
     return min + (max - min) *
-                     (exp(M_LN2 * double(i) / double(n - 1) * k) - 1.0) /
-                     (std::pow(2.0, k) - 1.0);
+                     (exp(M_LN2 * k * double(i) / double(n - 1)) - 1.0) /
+                     (exp(M_LN2 * k) - 1.0);
 }
 
 inline void Interpolator3D::safe_delete_data() {
@@ -195,7 +204,7 @@ inline void Interpolator3D::safe_delete_data() {
 inline void Interpolator3D::prepare_data() {
   safe_delete_data();
   m_data = new (std::nothrow) double[(m_nx + 3) * (m_ny + 3) * (m_nz + 3)];
-  if (!m_data) exit(50);
+  if (!m_data) exit(INTERPOLATOR3D_ERROR_BAD_DATA_ALLOC);
 }
 
 inline void Interpolator3D::safe_delete_cached_coeffs() {
@@ -208,7 +217,7 @@ inline void Interpolator3D::prepare_cached_coeffs() {
   safe_delete_cached_coeffs();
   m_cached_coeffs = new (std::nothrow) Coeffs[m_nx * m_ny * m_nz];
 
-  if (!m_cached_coeffs) exit(56);
+  if (!m_cached_coeffs) exit(INTERPOLATOR3D_ERROR_BAD_CACHE_ALLOC);
 }
 
 inline void Interpolator3D::cache_coeffs() {
@@ -419,7 +428,7 @@ inline void Interpolator3D::set_grid(const DataGenerationConfig* config) {
   m_y = new (std::nothrow) double[m_ny + 3];
   m_z = new (std::nothrow) double[m_nz + 3];
 
-  if (!m_x || !m_y || !m_z) exit(51);
+  if (!m_x || !m_y || !m_z) exit(INTERPOLATOR3D_ERROR_BAD_GRID_ALLOC);
 
   if (config) {
     for (uint i = 0; i < m_nx; i++)
@@ -522,7 +531,7 @@ inline void Interpolator3D::export_data_old_format(
 #ifdef _INTERP_LOG
     std::cerr << "Could not open given file. Aborting" << std::endl;
 #endif
-    exit(52);
+    exit(INTERPOLATOR3D_ERROR_COULDNT_OPEN_EXPORT);
   }
 
   // printing m_nx, m_ny, m_nz into the first line
@@ -557,7 +566,7 @@ inline void Interpolator3D::import_data_old_format(
 #ifdef _INTERP_LOG
     std::cerr << "Could not open given file. Aborting" << std::endl;
 #endif
-    exit(53);
+    exit(INTERPOLATOR3D_ERROR_COULDNT_OPEN_IMPORT);
   }
 
   std::string line;
@@ -575,7 +584,7 @@ inline void Interpolator3D::import_data_old_format(
                  "in the desired format. Aborting!"
               << std::endl;
 #endif
-    exit(54);
+    exit(INTERPOLATOR3D_ERROR_WRONG_DATA_FORMAT);
   }
 
   m_nx = std::stoi(line_vec[1]);
@@ -647,7 +656,7 @@ inline void Interpolator3D::export_data_plain_text(
 #ifdef _INTERP_LOG
     std::cerr << "Could not open given file. Aborting" << std::endl;
 #endif
-    exit(52);
+    exit(INTERPOLATOR3D_ERROR_COULDNT_OPEN_EXPORT);
   }
 
   out << "#n " << m_nx << " " << m_ny << " " << m_nz
@@ -689,7 +698,7 @@ inline void Interpolator3D::import_data_plain_text(
 #ifdef _INTERP_LOG
     std::cerr << "Could not open given file. Aborting" << std::endl;
 #endif
-    exit(53);
+    exit(INTERPOLATOR3D_ERROR_COULDNT_OPEN_IMPORT);
   }
 
   std::string line;
@@ -724,7 +733,7 @@ inline void Interpolator3D::import_data_plain_text(
                  "in the desired format. Aborting!"
               << std::endl;
 #endif
-    exit(54);
+    exit(INTERPOLATOR3D_ERROR_WRONG_DATA_FORMAT);
   }
 
   m_nx = std::stoi(line_vec[1]);
@@ -763,10 +772,11 @@ inline void Interpolator3D::import_data_plain_text(
 }
 
 inline void Interpolator3D::export_data(const std::string& filepath) const {
-  if (!m_data || !m_x || !m_y || !m_z) exit(57);
+  if (!m_data || !m_x || !m_y || !m_z)
+    exit(INTERPOLATOR3D_ERROR_NO_DATA_TO_EXPORT);
 
   std::ofstream out(filepath, std::ios::binary);
-  if (!out.is_open()) exit(52);
+  if (!out.is_open()) exit(INTERPOLATOR3D_ERROR_COULDNT_OPEN_EXPORT);
 
   // format check number
   out.write(reinterpret_cast<const char*>(&FORMAT_CHECK_NUM),
@@ -791,14 +801,15 @@ inline void Interpolator3D::export_data(const std::string& filepath) const {
 
 inline void Interpolator3D::import_data(const std::string& filepath) {
   std::ifstream in(filepath, std::ios::binary);
-  if (!in.is_open()) exit(53);
+  if (!in.is_open()) exit(INTERPOLATOR3D_ERROR_COULDNT_OPEN_IMPORT);
 
   // check format of data to be imported
   InterpFormatCheck format_check_num;
   in.read(reinterpret_cast<char*>(&format_check_num),
           sizeof(InterpFormatCheck));
 
-  if (format_check_num != FORMAT_CHECK_NUM) exit(54);
+  if (format_check_num != FORMAT_CHECK_NUM)
+    exit(INTERPOLATOR3D_ERROR_WRONG_DATA_FORMAT);
 
   // nx, ny, nz
   in.read(reinterpret_cast<char*>(&m_nx), sizeof(m_nx));
@@ -1024,6 +1035,37 @@ inline double Interpolator3D::B(Coeffs& coeffs, uint i, double y, double y2,
                                 double y3, double z, double z2, double z3) {
   return A(coeffs, i, 0, z, z2, z3) + A(coeffs, i, 1, z, z2, z3) * y +
          A(coeffs, i, 2, z, z2, z3) * y2 + A(coeffs, i, 3, z, z2, z3) * y3;
+}
+
+inline double Interpolator3D::get_interp_value_trilinear(double x, double y,
+                                                         double z) const {
+  int i_0, j_0, k_0;
+
+  find_closest_lower_data_point(i_0, j_0, k_0, x, y, z);
+
+  x = (x - m_x[i_0 + 1]) / (m_x[i_0 + 2] - m_x[i_0 + 1]);
+  y = (y - m_y[j_0 + 1]) / (m_y[j_0 + 2] - m_y[j_0 + 1]);
+  z = (z - m_z[k_0 + 1]) / (m_z[k_0 + 2] - m_z[k_0 + 1]);
+
+  double p[2][2][2];
+  for (uint i = 0; i < 2; i++)
+    for (uint j = 0; j < 2; j++)
+      for (uint k = 0; k < 2; k++)
+        p[i][j][k] = m_data[get_data_index(i + i_0, j + j_0, k + k_0)];
+
+  double y_vals[2][2];
+  y_vals[0][0] = (p[1][0][0] - p[0][0][0]) * x + p[0][0][0];
+  y_vals[0][1] = (p[1][0][1] - p[0][0][1]) * x + p[0][0][1];
+  y_vals[1][0] = (p[1][1][0] - p[0][1][0]) * x + p[0][1][0];
+  y_vals[1][1] = (p[1][1][1] - p[0][1][1]) * x + p[0][1][1];
+
+  double z_vals[2];
+  z_vals[0] = (y_vals[1][0] - y_vals[0][0]) * y + y_vals[0][0];
+  z_vals[1] = (y_vals[1][1] - y_vals[1][0]) * y + y_vals[1][0];
+
+  double result = (z_vals[1] - z_vals[0]) * z + z_vals[0];
+
+  return result;
 }
 
 inline double Interpolator3D::get_interp_value_tricubic(double x, double y,
