@@ -839,7 +839,7 @@ inline void Interpolator3D::generate_data(
   prepare_data();
 
   ThreadPool pool(m_num_threads);
-  ProgressMonitor pm(m_nx, "Interpolator caching progress: ");
+  ProgressMonitor pm(m_nx, "Interpolator data-gen progress: ");
 
   for (uint i = 1; i < m_nx + 1; i++) {
     pool.enq_job([i, &pm, &func, this, monitor_progress] {
