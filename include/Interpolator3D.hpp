@@ -2,7 +2,8 @@
 #ifndef INTERPOLATOR3D_INTERPOLATION3D_HPP_
 #define INTERPOLATOR3D_INTERPOLATION3D_HPP_
 
-#include <stdlib.h>
+#include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
+#include "../external/thread-pool/include/ThreadPool.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -11,11 +12,9 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <stdlib.h>
 #include <string>
 #include <vector>
-
-#include "../external/easy-progress-monitor/include/ProgressMonitor.hpp"
-#include "../external/thread-pool/include/ThreadPool.hpp"
 
 #define INTERPOLATOR3D_ERROR_BAD_DATA_ALLOC 50
 #define INTERPOLATOR3D_ERROR_BAD_GRID_ALLOC 51
